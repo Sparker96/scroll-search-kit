@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+build/
+# private run configs never go in the repo
+kit/config/private-*.env

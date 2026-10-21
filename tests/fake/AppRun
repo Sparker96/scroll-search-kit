@@ -1,0 +1,12 @@
+#!/bin/bash
+# Fake VC3D AppRun for the kit's tests: makes the files the real tools make, in a fraction of a second.
+# FAKE_TRACE_FAIL=1 makes every tracer attempt stall; FAKE_RENDER_BLANK=<regex> renders matching strips all-zero.
+tool=$1; shift
+PY=${FAKE_PY:?FAKE_PY}
+case $tool in
+  list) printf 'vc_grow_seg_from_seed\nvc_grow_seg_from_segments\nvc_render_tifxyz\n' ;;
+  vc_grow_seg_from_seed) exec "$PY" -I "$(dirname "$0")/fake_vc.py" grow "$@" ;;
+  vc_grow_seg_from_segments) exec "$PY" -I "$(dirname "$0")/fake_vc.py" trace "$@" ;;
+  vc_render_tifxyz) exec "$PY" -I "$(dirname "$0")/fake_vc.py" render "$@" ;;
+  *) echo "fake AppRun: unknown tool $tool"; exit 1 ;;
+esac
