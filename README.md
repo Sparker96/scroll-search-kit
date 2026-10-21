@@ -64,7 +64,12 @@ check to run from your own machine.
 - **Reader V3, the default model**, separates the known PHerc. 0343 letters from the gaps between them a little better
   than Reader v2 (AUC 0.746 vs 0.725 on the inked layer, 0.648-0.661 vs 0.616 one layer off), at the same
   or better speed. It draws false strokes where its input is empty; the kit removes those (`nodata.py`).
-- **This version of the kit** ⟨to fill: release-candidate test on a desktop GPU; stand-in tool tests in `tests/`⟩.
+- **Release-candidate runs** of the quick configuration on one desktop RTX 4070 SUPER (about 75 minutes each) passed
+  the same-answer check (11/11 maps identical) and show the known PHerc. 0343 letters in their own maps, on surfaces the
+  kit grew at six letter positions it was given (all 18 letters reached). That checks the pipeline from scan to ink
+  map, not that the kit finds writing unaided. Earlier candidates passed a stop in the middle of inking with an
+  immediate restart, and a resumed run. 25 scenarios on stand-in tools (`tests/`) check the orchestration and its
+  failure handling.
 
 See [docs/VALIDATION.md](docs/VALIDATION.md), including what this does *not* show.
 
@@ -86,8 +91,9 @@ kit/vast.sh destroy ID                               # billing stops only when t
 ```
 
 For a first try, `kit/config/control-0343-quick.env` searches the same band with a small growth budget and 2 strips per
-box (⟨time: from the release-candidate test⟩), and starts strips at six of the known letters (`SEEDS_EXTRA`; a letter
-that no strip reaches gets the patch grown there inked instead), so its maps can be checked for them.
+box (about 75 minutes on one desktop RTX 4070 SUPER, from setup to the last map), and starts strips at six of the known
+letters (`SEEDS_EXTRA`; a letter that no strip reaches gets the patch grown there inked instead), so its maps can be
+checked for them.
 
 ## Requirements
 

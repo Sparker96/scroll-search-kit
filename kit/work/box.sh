@@ -3,9 +3,9 @@
 # 1 local copy of the box's part of the surface prediction -> 2 seed patches -> 3 expansion pass 1 (tgt_overlap_count
 # 10) -> 4 expansion pass 2 (tgt_overlap_count 30) -> 5 stitched strips (vc_grow_seg_from_segments, same_surface_th 4,
 # each started from the most-overlapped patch that no earlier strip covers), or with COVER=1 a cover of the grown patches
-# instead (cover.py). The config's own seed points (SEEDS_EXTRA) start the first strips, and a point that nothing inked
-# reaches gets the patch grown at it inked as it is. Every kept strip (or picked patch) goes straight into the run's ink
-# queue (inkq.sh), which renders it and reads it with the ink model on whichever GPU is free.
+# instead (cover.py). The config's own seed points (SEEDS_EXTRA) start the first strips (on top of MAXTRY), and a point
+# that nothing inked reaches gets the patch grown at it inked as it is. Every kept strip (or picked patch) goes straight
+# into the run's ink queue (inkq.sh), which renders it and reads it with the ink model on whichever GPU is free.
 # The stitcher needs dense overlap: with ~11 overlapping patches per patch it stalls, with ~30 it fills the box, hence
 # the two expansion passes. It is not deterministic from run to run.
 # Environment from band.sh: CONFIG, RUN, BOX "z0 z1 y0 y1 x0 x1", SEEDS (tsv: name x y z ...), OUT (this box's folder),
@@ -50,18 +50,19 @@ enqueue() {  # trace k
 }
 # the config's own seed points (SEEDS_EXTRA, named x_ by band.sh): strips start at the patches grown there first
 # (next_start.py --first). A point that no inked strip (or picked patch) then reaches gets the patch grown at it inked as
-# it is, named x_<name>: a stitcher started at such a point often stalls at once (5 of 6 starts at known letters did in
-# the quick PHerc. 0343 control). The points' states (OUT/seeds_extra.ink.tsv: name, reached|ink|nopatch, patch) are
-# written once, so a resumed box queues the same patches.
-first=(); grep '^x_' "$SEEDS" > "$OUT/seeds_extra.tsv" && first=(--first "$OUT/seeds_extra.tsv")
+# it is, named x_<name>: a stitcher started at such a point often stalls at once (11 of 12 starts at known letters did
+# in two runs of the quick PHerc. 0343 control). The points' states (OUT/seeds_extra.ink.tsv: name, reached|ink|nopatch,
+# patch) are written once, so a resumed box queues the same patches. Boxes overlap, so a point that no patch reached in
+# this box may be inked by its neighbour: summary.py counts each point once and warns only about one that no box inked
+# or reached. Tries started at these points do not use up MAXTRY: a box gets one more try per point it holds.
+first=() nx=0
+grep '^x_' "$SEEDS" > "$OUT/seeds_extra.tsv" && first=(--first "$OUT/seeds_extra.tsv") && nx=$(wc -l < "$OUT/seeds_extra.tsv")
 ink_extra_seeds() {  # the tifxyz folders inked so far
   local xt=$OUT/seeds_extra.ink.tsv name st p
   [ "${#first[@]}" -gt 0 ] || return 0
   if [ ! -e "$xt" ]; then
     "$PY" -I "$WORK/next_start.py" "$PATCHES" "$@" --tol "$START_TOL" --min-area "$START_MIN_AREA" "${first[@]}" \
         --list-first > "$xt.part" && mv "$xt.part" "$xt" || { rm -f "$xt.part"; fail "seed point check failed"; }
-    [ -n "${RUN:-}" ] && awk -F'\t' -v b="$(basename "$(dirname "$OUT")")/$(basename "$OUT")" -v d="$(date '+%F %T')" \
-        '$2 == "nopatch" {print d " WARNING: " b ": seed point " $1 ": no patch grew there"}' "$xt" >> "$RUN/alerts.log"
   fi
   while IFS=$'\t' read -r name st p; do
     echo "seed point $name: $st"
@@ -181,7 +182,7 @@ export OMP_NUM_THREADS=$STITCH_THREADS
 tp=$OUT/tracer_params.json
 printf '{"flip_x": 1, "global_steps_per_window": 1, "step": 6, "consensus_default_th": 10, "consensus_limit_th": 2, "z_range": [%d, %d], "use_cuda": false, "same_surface_th": 4}\n' "$Z0" "$Z1" > "$tp"
 kept=0 inked=()   # inked = this box's strips that went to the ink queue (MIN_NEW measures against them)
-for k in $(seq 1 "$MAXTRY"); do
+for k in $(seq 1 $((MAXTRY + nx))); do
   [ "$kept" -ge "$NTR" ] && break
   td=$TRACES/t$k
   # a stop that came after the stitcher finished but before .done: that trace is whole (VC3D renames a trace only when

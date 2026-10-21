@@ -52,9 +52,9 @@ The kit's own scripts are MIT-licensed (LICENSE). It runs, downloads or redistri
 - Control strip and reference maps (`control-0343.tar.gz`, release asset): derived from PHerc. 0343 open data,
   CC-BY-NC 4.0.
 - Images in `docs/img/`: derived from the Vesuvius Challenge open data, CC-BY-NC 4.0 (not MIT like the code).
-  `control-0343-nodata-rv3.png`, `ctrl-0343-strip.jpg` and `quick-0343-letters.png` show PHerc. 0343, whose letters
-  were first found by Erwin Nieuwlaar (First Letters, 2026; `quick-0343-letters.png` also shows his letter mesh and
-  letter boxes, MIT, read with Reader v2); `ctrl-0814.jpg` shows the PHerc. 0814 team segment and its published ink
-  result.
+  `control-0343-nodata-rv3.png`, `ctrl-0343-strip.jpg`, `quick-0343-letters.png`, `quick-0343-x_l06.png` and
+  `quick-0343-x_l04.png` show PHerc. 0343, whose letters were first found by Erwin Nieuwlaar (First Letters, 2026; the
+  three `quick-0343-*` images also show his letter mesh read with Reader v2, and AUCs against his letter boxes, both
+  MIT); `ctrl-0814.jpg` shows the PHerc. 0814 team segment and its published ink result.
 - PHerc. 0343 letter positions used for validation: Erwin Nieuwlaar, github.com/Nieuwlaar/pherc343-first-letters
   (MIT). PHerc. 0814 team segment and ink result: Vesuvius Challenge open data (CC-BY-NC 4.0).

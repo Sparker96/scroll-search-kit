@@ -2,7 +2,9 @@
 """Summarise a search run: strips and cm² per state, time per phase, throughput. Writes RUN/summary.json too.
 
 Reads RUN/queue/*/*.job (each strip's trace), RUN/band_z*/box_*/timing.tsv (seconds per phase), RUN/times.txt,
-RUN/metrics.tsv and the boxes' seeds_extra.ink.tsv (SEEDS_EXTRA points: reached, inked as their own patch, no patch). Strip area = valid tifxyz nodes x 400 voxel² per node (grid every 20 voxels) x voxel area.
+RUN/metrics.tsv and the boxes' seeds_extra.ink.tsv (SEEDS_EXTRA points: reached, inked as their own patch, no patch;
+each point counted once, although overlapping boxes may both list it). Strip area = valid tifxyz nodes x 400 voxel² per
+node (grid every 20 voxels) x voxel area.
 Strips overlap (neighbouring boxes, several strips per box), so the summed area overstates what was searched. UNIQUE
 area counts a node only if no earlier strip (in path order) has a point within --unique-tol voxels of it [10]; earlier
 strips are sampled 4x4 per grid cell (every ~5 voxels). The headline number is the unique area.
@@ -145,13 +147,19 @@ def main():
             if len(parts) >= 3:
                 states["masked"][0] += 1
                 states["masked"][1] += float(parts[2])
-    # SEEDS_EXTRA points, per box (box_*/seeds_extra.ink.tsv: name, reached|ink|nopatch, patch; box.sh)
-    seeds = defaultdict(int)
+    # SEEDS_EXTRA points (box_*/seeds_extra.ink.tsv: name, reached|ink|nopatch, patch; box.sh). Boxes overlap, so a
+    # point can be listed by several boxes: it counts once, as inked if any box inked its patch, else as reached if any
+    # box's inked strips reached it, else as a point where no patch grew (in every box that holds it)
+    rank = {"ink": 0, "reached": 1, "nopatch": 2}
+    point, held = {}, defaultdict(list)
     for f in sorted(a.run.glob("band_z*/box_*/seeds_extra.ink.tsv")):
         for line in f.read_text().splitlines():
             parts = line.split("\t")
-            if len(parts) >= 2:
-                seeds[parts[1]] += 1
+            if len(parts) >= 2 and parts[1] in rank:
+                if parts[0] not in point or rank[parts[1]] < rank[point[parts[0]]]:
+                    point[parts[0]] = parts[1]
+                held[parts[0]].append(f"{f.parent.parent.name}/{f.parent.name}")
+    seeds = {k: sum(v == k for v in point.values()) for k in rank} if point else None
     uniq = unique_areas(sorted(done_traces), vx, a.unique_tol)
     unique_cm2 = sum(u for _, u in uniq)
     phases = defaultdict(lambda: [0, 0])
@@ -172,9 +180,11 @@ def main():
         "seed_points": {k: seeds[k] for k in ("reached", "ink", "nopatch")} if seeds else None,
         "wall_hours": round(wall_h, 4) if wall_h else None,
         "searched_cm2_per_hour": round(unique_cm2 / wall_h, 1) if wall_h else None,
-        "warnings": [re.sub(r"^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d ", "", l)
-                     for l in (a.run / "alerts.log").read_text().splitlines() if "WARNING" in l]
-                    if (a.run / "alerts.log").exists() else [],
+        "warnings": ([re.sub(r"^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d ", "", l)
+                      for l in (a.run / "alerts.log").read_text().splitlines() if "WARNING" in l]
+                     if (a.run / "alerts.log").exists() else [])
+                    + [f"WARNING: seed point {n}: no patch grew there ({', '.join(held[n])})"
+                       for n, v in point.items() if v == "nopatch"],
     }
     (a.run / "summary.json").write_text(json.dumps(out, indent=2) + "\n")
     print(f"run {a.run.name}: voxel {vx} um")
@@ -187,8 +197,8 @@ def main():
     if wall_h:
         print(f"  in {wall_h:.2f} h wall clock = {out['searched_cm2_per_hour']} unique cm2/h")
     if seeds:
-        print(f"  seed points (SEEDS_EXTRA, per box): {seeds['reached']} reached by what was inked, {seeds['ink']} inked "
-              f"as their own patch, {seeds['nopatch']} where no patch grew")
+        print(f"  seed points (SEEDS_EXTRA, each counted once): {seeds['reached']} reached by what was inked, "
+              f"{seeds['ink']} inked as their own patch, {seeds['nopatch']} where no patch grew")
     for w in out["warnings"]:
         print(f"  {w}")
 

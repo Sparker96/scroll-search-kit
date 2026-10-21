@@ -429,9 +429,10 @@ torch.save({'config': {'model': {'crop_size': [17]}}, 'args': argparse.Namespace
     extraseeds)
       # SEEDS_EXTRA: the config's own seed points in a band join its seeds, and the box holding one starts its first
       # strip at the patch grown there; a point outside the band is ignored. Every tracer started at a seed patch stalls
-      # here (as 5 of 6 did at known letters on the real control), so the patch grown at the point is inked itself
+      # here (as 5 of 6 did at known letters on the real control), so the patch grown at the point is inked itself.
+      # MAXTRY 1: the try started at the point comes on top, so the box still gets one try of its own rule
       printf 'l01\t200\t200\t9400\t-1\t-1\t-1\t0.0\nl99\t200\t200\t5000\t-1\t-1\t-1\t0.0\n' > "$T/extra.tsv"
-      c=$(config extraseeds 'BANDS="9000:10000"' "SEEDS_EXTRA=$T/extra.tsv")
+      c=$(config extraseeds 'BANDS="9000:10000"' "SEEDS_EXTRA=$T/extra.tsv" "MAXTRY=1")
       FAKE_TRACE_FAIL_META='"mode": "seed"' timeout 600 bash "$WORK/run.sh" "$c" > "$T/extraseeds.log" 2>&1; rc=$?
       B=$T/results/extraseeds.env/band_z09000-10000
       grep -q '^x_l01'$'\t' "$B/seeds_all.tsv" && ! grep -q 'l99' "$B/seeds_all.tsv" \
@@ -442,6 +443,10 @@ torch.save({'config': {'model': {'crop_size': [17]}}, 'args': argparse.Namespace
       seed=$("$PY" -I -c "import json, sys; print(*[round(v) for v in json.load(open(sys.argv[1] + '/meta.json'))['seed']])" "$st" 2> /dev/null)
       [ "$rc" = 0 ] && [ "$seed" = "200 200 9400" ] && ok "box_00's first strip started at the patch grown at it" \
         || bad "extra seeds: exit $rc, box_00 start ${st##*/} grown at '$seed'"
+      st2=$(cat "$B/box_00/traces/t2/start.txt" 2> /dev/null)
+      [ -n "$st2" ] && [ "$st2" != "$st" ] && [ ! -e "$B/box_00/traces/t3" ] && [ ! -e "$B/box_01/traces/t2" ] \
+        && ok "the try at the seed point did not use up MAXTRY 1: box_00 got one more (t2), box_01 none" \
+        || bad "tries: box_00 t2 '${st2##*/}', t3 $([ -e "$B/box_00/traces/t3" ] && echo exists), box_01 t2 $([ -e "$B/box_01/traces/t2" ] && echo exists)"
       grep -q "SEEDS_EXTRA=$T/extra.tsv" "$T/results/extraseeds.env/machine.txt" && ok "machine.txt records it" || bad "SEEDS_EXTRA not in machine.txt"
       x=$(awk -F'\t' '$1 == "x_l01" {print $2, $3}' "$B/box_00/seeds_extra.ink.tsv" 2> /dev/null)
       [ "$x" = "ink $st" ] && [ -e "$T/results/extraseeds.env/queue/done/band_z09000-10000__box_00__x_l01.job" ] \
@@ -449,9 +454,18 @@ torch.save({'config': {'model': {'crop_size': [17]}}, 'args': argparse.Namespace
         && ok "the stitcher stalled there, so the patch grown at the point was inked itself (x_l01)" \
         || bad "seed patch: '$x' (start ${st##*/}); $(bash "$WORK/inkq.sh" status "$T/results/extraseeds.env")"
       [ "$(find "$B" -name seeds_extra.ink.tsv | wc -l)" = 1 ] \
-        && grep -q 'seed points (SEEDS_EXTRA, per box): 0 reached by what was inked, 1 inked as their own patch, 0 where' \
+        && grep -q 'seed points (SEEDS_EXTRA, each counted once): 0 reached by what was inked, 1 inked as their own patch, 0 where' \
           "$T/results/extraseeds.env/summary.txt" && ok "only box_00 lists seed points; the summary counts the inked one" \
         || bad "seed point lists: $(find "$B" -name seeds_extra.ink.tsv | wc -l); $(grep 'seed points' "$T/results/extraseeds.env/summary.txt")"
+      # overlapping boxes can both hold a point: one that another box inked counts once and gets no warning; one that
+      # no box inked or reached is warned about once, with the boxes that hold it
+      printf 'x_l01\tnopatch\t-\nx_l07\tnopatch\t-\n' > "$B/box_01/seeds_extra.ink.tsv"
+      "$PY" -I "$WORK/summary.py" "$T/results/extraseeds.env" > "$T/extraseeds.sum2" 2>&1
+      grep -q 'seed points (SEEDS_EXTRA, each counted once): 0 reached by what was inked, 1 inked as their own patch, 1 where' \
+          "$T/extraseeds.sum2" && grep -q 'WARNING: seed point x_l07: no patch grew there (band_z09000-10000/box_01)$' \
+          "$T/extraseeds.sum2" && ! grep -q 'seed point x_l01' "$T/extraseeds.sum2" \
+        && ok "a point inked in one box and missed in another counts once, as inked; one missed everywhere is warned about" \
+        || bad "dedupe: $(grep 'seed point' "$T/extraseeds.sum2" | tr '\n' ' ')"
       # a strip that reaches the point: the patch is not inked again
       c=$(config extraseeds2 'BANDS="9000:10000"' "SEEDS_EXTRA=$T/extra.tsv")
       FAKE_TRACE_AT_START=1 timeout 600 bash "$WORK/run.sh" "$c" > "$T/extraseeds2.log" 2>&1; rc=$?
