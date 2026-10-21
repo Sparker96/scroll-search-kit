@@ -186,8 +186,8 @@ are ending waits up to 2 minutes for them. A `run.sh` started next to one that i
 ## 18. A strip started at a hand-picked point often stalls
 
 In two release-candidate runs of the quick PHerc. 0343 control, the kit started strips at six of the known letters
-(`SEEDS_EXTRA`). Of these 12 starts, one grew into a 1.55 cm² strip that reached 10 of the 18 letters and shows them in
-the run's own map ([VALIDATION](VALIDATION.md) §1). The stitcher stopped the other eleven early ("stopping growth after
+(`SEEDS_EXTRA`). Of these 12 starts, one grew into a 1.55 cm² strip that reached 10 of the 18 letters and shows the
+eight it covers on the inked layer in the run's own map ([VALIDATION](VALIDATION.md) §1). The stitcher stopped the other eleven early ("stopping growth after
 5 expansions with no valid-count increase", 0.05-0.90 cm²), although their start patches had grown normally (2.6-2.9
 cm²) and lay partly on the inked layer (about a third to three quarters of their nodes within 20 voxels of the
 published letter mesh). The stitcher extends a surface only where many overlapping patches agree, and a point picked
@@ -196,5 +196,5 @@ the 1 cm² a strip must have in 5 of 18 tries in the same runs, whose small grow
 anyway. So a seed point that no inked strip reaches now gets the patch grown at it inked as it is, a minute or two of
 GPU time (`box_*/seeds_extra.ink.tsv` says which points were reached and which were inked this way): the config asked
 for that place to be searched, and the patch around it is what the run has there. In the second run, the six patches
-inked this way reached all 18 letters between them. Tries started at seed points no longer count against `MAXTRY`: in
+inked this way reached all 18 letters between them, and every letter shows in at least one of them. Tries started at seed points no longer count against `MAXTRY`: in
 that run they had used 3 of one box's 4 tries, leaving the kit's own rule a single one there.

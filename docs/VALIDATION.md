@@ -45,10 +45,11 @@ letters first found by Erwin Nieuwlaar (First Letters, 2026).*
 The quick configuration (`kit/config/control-0343-quick.env`) seeds six of the known letters (`SEEDS_EXTRA`,
 positions from Erwin Nieuwlaar's letter boxes) and starts strips there, so a whole run, from seed to ink map, can be
 checked against them. In a release-candidate run on one desktop RTX 4070 SUPER (75 minutes from setup to the last map),
-the strip started at letter 6 grew to 1.55 cm², reached 10 of the 18 letters (5-13 and 18) and shows them in the run's
-own Reader V3 map. Where the strip lies within ±4 voxels of his layer, the map separates the inside of his letter boxes
-from the gaps around them with an AUC of 0.77 at depth +4 (0.5 would be chance; inside/gap contrast 1.3-1.9 for letters
-5-13), against 0.75 for the strip above at the same depth.
+the strip started at letter 6 grew to 1.55 cm² and reached 10 of the 18 letters. The eight it covers on his layer (5-12)
+show in the run's own Reader V3 map; letter 13 has too few samples on his layer and letter 18 lies off it. Where the
+strip lies within ±4 voxels of his layer, the map separates the inside of his letter boxes from the gaps around them
+with an AUC of 0.77 at depth +4 (0.5 would be chance; inside/gap contrast 1.3-1.9 for letters 5-12), against 0.75 for
+the strip above at the same depth.
 
 ![The known PHerc. 0343 letters in the quick configuration's own map](img/quick-0343-letters.png)
 
@@ -61,26 +62,27 @@ Vesuvius Challenge open data. Image CC BY-NC 4.0.*
 The stitcher started at the other five letters stopped almost at once (0.05-0.90 cm²), so the kit now inks the patch
 grown at any seed point that no strip reaches ([LESSONS](LESSONS.md) §18). In a second release-candidate run with that
 fallback (76 minutes), all six strips started at letters stopped below the 1 cm² a strip must have, and the six patches
-grown at the letter points (2.64 cm² each) were inked as they are. Together they reach all 18 letters. 14 of them stand
-out from the gaps around them (letters 1-5 and 7-15, inside/gap contrast 1.3-1.9, each at its best depth); letters 6,
-16 and 17 have too few samples near his layer, and letter 18 does not stand out. The best AUC per patch is 0.67-0.84,
-against 0.75 for the strip above. Two of the patches show the same letterforms as his layer:
+grown at the letter points (2.64 cm² each) were inked as they are. Together they reach all 18 letters, and each of them
+shows: where a patch lies within 4 voxels of his layer, at depth 0 or +4, every letter is brighter than the gaps around
+it in at least one patch (AUC 0.67-0.97 per letter; the strip above, measured the same way: 0.62-0.97). Each patch's
+best AUC over all the letters it reaches is 0.67-0.84, against 0.75 for the strip above. Two of the patches show the
+same letterforms as his layer:
 
 <p><img src="img/quick-0343-x_l06.png" width="49%" alt="The known PHerc. 0343 letters on the patch the kit grew at letter 6">
 <img src="img/quick-0343-x_l04.png" width="49%" alt="The known PHerc. 0343 letters on the patch the kit grew at letter 4"></p>
 
 *The patches the kit grew at letter 6 (left) and letter 4 (right), each inked as it is. Top: Erwin Nieuwlaar's letter
 layer (his mesh) read with Reader v2. Middle: the kit's own Reader V3 map at depth 0 (`rv3_s22_reverse.tif` and
-`rv3_s22.tif`: the two patches face opposite ways, and the kit chose each one's reading side from the scroll's axis);
-bright fibre streaks above the letters lower the right one's AUC. Bottom: the distance between the two surfaces along
-his normal: green 0, red up to 20 voxels inside his layer, magenta up to 20 voxels outside. Letters first found by
-Erwin Nieuwlaar (First Letters, 2026); Reader v2 and V3 by Domenico Russo; scan: PHerc. 0343, Vesuvius Challenge open
-data. Image CC BY-NC 4.0.*
+`rv3_s22.tif`: the two patches face opposite ways, and the kit chose each one's reading side from the scroll's axis).
+The right one's lower AUC is that of letters 1-5, the faintest of the 18 for Reader V3: the strip above scores the same
+on them (0.67). Bottom: the distance between the two surfaces along his normal: green 0, red up to 20 voxels inside
+his layer, magenta up to 20 voxels outside. Letters first found by Erwin Nieuwlaar (First Letters, 2026); Reader v2 and
+V3 by Domenico Russo; scan: PHerc. 0343, Vesuvius Challenge open data. Image CC BY-NC 4.0.*
 
 All of these surfaces were started at letter positions the run was given. They check the whole chain on the kit's own
 geometry (scan, surface, rendering, ink map) where writing is known to be; they do not show that the kit finds writing
-unaided: no strip started by the kit's own rule reached his inked layer in either run (the nearest stayed 66 voxels
-away).
+unaided: no strip started by the kit's own rule reached the part of his layer that holds the letters in either run (the
+nearest stayed 66 voxels away).
 
 ## 2. PHerc. 0814 (9.362 µm, the scan type of the eligible scrolls): known text lines
 

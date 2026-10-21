@@ -66,7 +66,7 @@ check to run from your own machine.
   or better speed. It draws false strokes where its input is empty; the kit removes those (`nodata.py`).
 - **Release-candidate runs** of the quick configuration on one desktop RTX 4070 SUPER (about 75 minutes each) passed
   the same-answer check (11/11 maps identical) and show the known PHerc. 0343 letters in their own maps, on surfaces the
-  kit grew at six letter positions it was given (all 18 letters reached). That checks the pipeline from scan to ink
+  kit grew at six letter positions it was given (all 18 letters). That checks the pipeline from scan to ink
   map, not that the kit finds writing unaided. Earlier candidates passed a stop in the middle of inking with an
   immediate restart, and a resumed run. 25 scenarios on stand-in tools (`tests/`) check the orchestration and its
   failure handling.
