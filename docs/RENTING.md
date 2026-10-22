@@ -10,7 +10,8 @@ on the rented machine. Prices change by the hour; check before you rent.
 2. **API key.** Create one in the vast.ai console and save it in a file only you can read:
    `install -D -m 600 /dev/stdin ~/.config/vesuvius/vastai-key` (paste, then Ctrl-D), or set `VAST_KEY_FILE`.
    The key never goes to the rented machine.
-3. **SSH key for rented machines only.** `ssh-keygen -t ed25519 -f ~/.ssh/vesuvius_rental` (or set `RENTAL_KEY`).
+3. **SSH key for rented machines only.** `ssh-keygen -t ed25519 -C rented-machines -f ~/.ssh/vesuvius_rental` (or set
+   `RENTAL_KEY`). `-C` sets the comment that travels with the public half (by default your user and computer name).
    Add the **public** half (`.pub`) on your vast.ai account's SSH keys page; vast.ai copies it into every new machine.
    `vast.sh` connects with this key only, with agent and X11 forwarding off.
 4. **Build the kit folder:** `kit/make_kit.sh build/kit` (downloads the pinned VC3D build and the control data from

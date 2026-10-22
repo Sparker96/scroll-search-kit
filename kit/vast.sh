@@ -7,8 +7,9 @@
 #   vast.sh create OFFER [LABEL] [DISK_GB]  rent it (vast.ai base image, disk [2000] GB, direct SSH); prints the id
 #   vast.sh status ID              state, address, price;   vast.sh wait ID  (until running and SSH answers)
 #   vast.sh ssh ID [CMD...]        run a command there (or log in)
-#   vast.sh push ID DIR            copy DIR's contents to /root/kit there (tar over SSH)
-#   vast.sh pull ID REMOTE LOCAL   copy REMOTE (a folder there) into LOCAL, skipping *.zarr (tar over SSH)
+#   vast.sh push ID DIR            copy DIR's contents to /root/kit there (tar over SSH, no user or group names)
+#   vast.sh pull ID REMOTE LOCAL   copy REMOTE (a folder there) into LOCAL, skipping *.zarr (tar over SSH; owners and
+#                                  setuid bits from there are not kept)
 #   vast.sh destroy ID             destroy the machine and its disk (billing stops)
 #   vast.sh balance                remaining prepaid credit
 # Offer filters (environment): MIN_GPUS [4], MIN_THREADS [96], MIN_DISK GB [2000], MIN_INET Mb/s [1000], MIN_REL
@@ -90,9 +91,9 @@ print(i.get('id'), i.get('actual_status'), i.get('intended_status'), f\"\${(i.ge
     done
     echo "not ready after 30 min (status $s)"; exit 1 ;;
   ssh) id=${2:?id}; shift 2; sshto "$id" "$@" ;;
-  push) id=${2:?id}; dir=${3:?dir}; tar cf - -C "$dir" . | sshto "$id" 'mkdir -p /root/kit && tar xf - -C /root/kit && du -sh /root/kit' ;;
+  push) id=${2:?id}; dir=${3:?dir}; tar cf - --numeric-owner -C "$dir" . | sshto "$id" 'mkdir -p /root/kit && tar xf - -C /root/kit && du -sh /root/kit' ;;
   pull) id=${2:?id}; rem=${3:?remote}; loc=${4:?local}; mkdir -p "$loc"
-        sshto "$id" "cd '$rem' && tar cf - --exclude='*.zarr' ." | tar xf - -C "$loc" && du -sh "$loc" ;;
+        sshto "$id" "cd '$rem' && tar cf - --exclude='*.zarr' ." | tar xf - --no-same-owner --no-same-permissions -C "$loc" && du -sh "$loc" ;;
   destroy)
     id=${2:?id}
     api -X DELETE "$API/instances/$id/"; echo
@@ -115,5 +116,5 @@ sys.exit(1 if int(sys.argv[1]) in ids else 0)" "$id"
     api "$API/users/current/" | python3 -I -c "
 import json, sys
 d = json.load(sys.stdin); print({k: d.get(k) for k in ('credit', 'balance', 'total_spend') if k in d})" ;;
-  *) sed -n '2,13p' "$0"; exit 1 ;;
+  *) sed -n '2,14p' "$0"; exit 1 ;;
 esac
