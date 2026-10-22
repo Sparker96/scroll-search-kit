@@ -34,8 +34,16 @@ kit/vast.sh ssh ID 'setsid nohup bash /root/work/run.sh /root/kit/config/my-scro
 ```
 
 `offers` ends each line with the machine's id: `EXCLUDE_MACHINES=12345,67890 kit/vast.sh offers` leaves machines out,
-for example one that refused your key. `create` rents vast.ai's base image in the build vast.ai picks for the machine's
-driver; `IMAGE=...` rents another image or build instead. `kit/vast.sh status ID` shows the machine id and the image.
+for example one that refused your key. Its RAM column is what the machine itself reports, in GiB. vast.ai's own pages
+divide the same figure by 1000, so they show about 2 % more: 63 here is 64-65 there. `MIN_RAM=64` leaves out the offers
+printed with less. The quick configuration with two bands used at most 33 GB of RAM, and a measured 2 cm band of an
+eligible scroll 34 GB. For the quick configuration a 250 GB disk is enough (`create OFFER my-try 250`): it used at most
+47 GB, and the ink step pauses when less than 150 GB is free (`MIN_FREE_GB`).
+
+`create` rents vast.ai's base image in the build vast.ai picks for the machine's driver; `IMAGE=...` rents another image
+or build instead. `kit/vast.sh status ID` prints the machine's own state first and the state you asked for second (right
+after `create` ours showed `None running`; the first word becomes `running` once the machine is up), then the price,
+the GPUs, the address, the machine id, the image tag and vast.ai's status message.
 
 `run.sh` first runs the same-answer check with the config's ink model and batch size, and stops if it fails (see
 `results/<run>/check/check.tsv`) or if the control has no reference maps made by that model (the kit's control has
@@ -63,14 +71,15 @@ Links, device files and names that point outside it are skipped and named; the p
 
 ## If something goes wrong
 
-- **The machine refuses the SSH key** (`kit/vast.sh ssh ID true` says `Permission denied (publickey)`): `vast.sh wait`
-  keeps trying for up to 30 minutes without saying why, so watch the clock instead. If SSH does not answer 5 minutes
-  after `kit/vast.sh status ID` first says `running`, stop `wait` (Ctrl-C) and keep the machine's log:
-  `kit/vast.sh logs ID > refused.log`. It is read through the API, so no SSH is needed. If vast.ai passes the start-up
-  script's output to the log, the kit's report in it shows the key file, its permissions and the SSH server's
-  settings. Then destroy the machine (`kit/vast.sh destroy ID`). Detaching and re-attaching the key or rebooting the
-  machine did not help when this happened to us, and only adds billed time. Rent another machine, with its machine id
-  in `EXCLUDE_MACHINES`.
+- **The machine refuses the SSH key** (`kit/vast.sh ssh ID true` says `Permission denied (publickey)`). `Connection
+  refused` in the first minutes is normal: the machine is still starting (for about 2½ minutes in our last test, then
+  the key was accepted). `vast.sh wait` keeps trying for up to 30 minutes without saying why, so watch the clock
+  instead. If SSH does not answer 5 minutes after `kit/vast.sh status ID` first shows the machine's own state as
+  `running` (the first word after the ID), stop `wait` (Ctrl-C) and keep the machine's log:
+  `kit/vast.sh logs ID > refused.log`. It is read through the API, so no SSH is needed, and it holds the kit's
+  start-up report: the key file, its permissions and the SSH server's settings. Then destroy the machine
+  (`kit/vast.sh destroy ID`). Detaching and re-attaching the key or rebooting the machine did not help when this
+  happened to us, and only adds billed time. Rent another machine, with its machine id in `EXCLUDE_MACHINES`.
 - **Stopped or interrupted run:** start the same `run.sh` command again; it continues where it stopped.
   `bash /root/work/stop.sh /root/results/my-scroll` returns only when nothing of the run is left (a tool that ignores
   TERM, as the stitcher can, gets KILL after 10 s), so `run.sh` can start right after it. A `run.sh` started while a

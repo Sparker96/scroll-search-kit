@@ -63,7 +63,8 @@ tests/vast_offline.sh
 
 `tests/fake/vast_api.py` takes the place of curl and answers from canned offers and a canned machine; ssh is a
 stand-in that refuses. It checks:
-- `offers`: machine ids, `EXCLUDE_MACHINES`.
+- `offers`: machine ids, `EXCLUDE_MACHINES`, `MIN_RAM` (compared with the RAM as printed; the request to vast.ai
+  stays the same).
 - `create`: what it sends, `IMAGE`, and that a `.pub` file that is not one plain key line stops it before any API call.
 - The machine's start-up script itself, run as root of a test folder in a user namespace where the machine allows that.
   The key is added once, on its own line, the modes are fixed and the report is written, also when `.ssh` is a link

@@ -60,17 +60,23 @@ check to run from your own machine.
 - **PHerc. 0814**, on the 9.362 µm scan type of the eligible scrolls: our best patches show the published text lines
   (r up to 0.70 on the inked layer with Reader V3, 0.65 with Reader v2), but lying on that layer is not enough: two
   patches that do score only 0.23-0.29.
-- **Same answer on rented hardware**: a rented 8-GPU machine reproduced a desktop machine's maps byte for byte (11/11
-  maps, same GPU architecture). The kit runs this check first.
+- **Same answer on rented hardware**: two rented machines (8 × RTX 4070 Ti SUPER and 4 × RTX 4070 SUPER) reproduced a
+  desktop machine's maps byte for byte (11/11 maps each, same GPU architecture). The kit runs this check first; other
+  GPU architectures are not yet tested.
 - **Reader V3, the default model**, separates the known PHerc. 0343 letters from the gaps between them a little better
   than Reader v2 (AUC 0.746 vs 0.725 on the inked layer, 0.648-0.661 vs 0.616 one layer off), at the same
   or better speed. It draws false strokes where its input is empty; the kit removes those (`nodata.py`).
-- **Release-candidate runs** of the quick configuration on one desktop RTX 4070 SUPER (75-95 minutes each) passed
-  the same-answer check (11/11 maps identical) and show the known PHerc. 0343 letters in their own maps, on surfaces the
-  kit grew at six letter positions it was given (in the last run, 17 of the 18 letters, most of them on stitched
+- **Release-candidate runs** of the quick configuration on one desktop RTX 4070 SUPER (75-95 minutes each) passed the
+  same-answer check (11/11 maps identical) and show the known PHerc. 0343 letters in their own maps, on surfaces the kit
+  grew at six letter positions it was given (in the last of them, 17 of the 18 letters, most of them on stitched
   strips). That checks the pipeline from scan to ink map, not that the kit finds writing unaided. Earlier candidates
   passed a stop in the middle of inking with an immediate restart, and a resumed run. 26 scenarios on stand-in tools
   (`tests/`) check the orchestration and its failure handling.
+- **The quick start on a rented machine**: the last release candidate, rented and run with the kit's own commands on a
+  4 × RTX 4070 SUPER machine with 88 CPU threads ($1.02/h), passed the same-answer check, grew two bands at once, inked
+  18 strips and patches on all four GPUs from one queue, and shows all 18 known PHerc. 0343 letters (on the patches it
+  grew at the six letter positions it was given). From renting the machine to destroying it: 88 minutes, $1.54
+  ([COSTS](docs/COSTS.md)).
 
 See [docs/VALIDATION.md](docs/VALIDATION.md), including what this does *not* show.
 
@@ -94,14 +100,17 @@ kit/vast.sh destroy ID                               # billing stops only when t
 For a first try, `kit/config/control-0343-quick.env` searches the same band with a small growth budget and 2 strips per
 box (75-95 minutes on one desktop RTX 4070 SUPER, from setup to the last map), and starts strips at six of the known
 letters (`SEEDS_EXTRA`; a letter that no strip reaches gets the patch grown there inked instead), so its maps can be
-checked for them.
+checked for them. On a rented 4 × RTX 4070 SUPER machine, with a second band added, it took 82 minutes from setup to
+the last map and cost $1.54 in all. A 250 GB disk is enough for it (`create OFFER my-try 250`): it used at most 47 GB,
+and the ink step pauses when less than 150 GB is free (`MIN_FREE_GB`).
 
 ## Requirements
 
 - Rented or own Linux x86_64 machine with NVIDIA GPUs, a driver new enough for CUDA 13, and outbound internet.
   The measured run used 128 CPU threads, 251 GB RAM and 1 TB of disk for one 2 cm band (the scan cache reached
-  32 GB; plan disk for the scan data you will read). Smaller machines work with fewer growers (`band.sh` caps them
-  by RAM and by the container's thread limit).
+  32 GB; plan disk for the scan data you will read). The quick configuration with two bands ran on 88 threads and
+  used at most 33 GB of RAM and 47 GB of disk. Smaller machines work with fewer growers (`band.sh` caps them by RAM and
+  by the container's thread limit).
 - Nothing to compile: VC3D comes as a pinned, checksum-verified AppImage (see NOTICE); Python
   3.14 + PyTorch 2.14.1 (CUDA 13.0) are installed by `setup.sh` with `uv`.
 

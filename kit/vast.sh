@@ -17,8 +17,8 @@
 #   vast.sh destroy ID             destroy the machine and its disk (billing stops)
 #   vast.sh balance                remaining prepaid credit
 # Offer filters (environment): MIN_GPUS [4], MIN_THREADS [96], MIN_DISK GB [2000], MIN_INET Mb/s [1000], MIN_REL
-#   reliability [0.99], MIN_CUDA [13.0], MIN_GPU_RAM MB per GPU [12000], GEO regex on the location, e.g. 'US|CA' [any],
-#   EXCLUDE_MACHINES machine ids to leave out, e.g. '12345,67890' [none].
+#   reliability [0.99], MIN_CUDA [13.0], MIN_GPU_RAM MB per GPU [12000], MIN_RAM GB as offers prints it [any], GEO regex
+#   on the location, e.g. 'US|CA' [any], EXCLUDE_MACHINES machine ids to leave out, e.g. '12345,67890' [none].
 # Other settings: IMAGE for create [vastai/base-image:@vastai-automatic-tag, the build vast.ai picks for the machine's
 #   driver], e.g. a dated build of that image; DAEMON_LOGS=1 makes logs show vast.ai's own log of the machine instead.
 set -uo pipefail
@@ -90,25 +90,32 @@ case "${1:-}" in
         "${MIN_THREADS:-96}" "${MIN_DISK:-2000}" "${MIN_INET:-1000}" "${MIN_REL:-0.99}" "${MIN_CUDA:-13.0}" "${MIN_GPU_RAM:-12000}")
     curl -sS -m 60 -G "$API/bundles/" --data-urlencode "q=$q" | python3 -I -c "
 import json, re, sys
-geo_re, disk_gb, exclude = sys.argv[1], float(sys.argv[2]), sys.argv[3]
+geo_re, disk_gb, exclude, min_ram = sys.argv[1], float(sys.argv[2]), sys.argv[3], sys.argv[4]
 try:
     skip = {str(int(m)) for m in exclude.replace(' ', '').split(',') if m}
 except ValueError:
     sys.exit(f'EXCLUDE_MACHINES must be machine ids separated by commas, e.g. 12345,67890 (it is {exclude})')
-left_out = 0
+if min_ram and not re.fullmatch(r'[0-9]+(\.[0-9]+)?', min_ram):
+    sys.exit(f'MIN_RAM must be a number of GB, e.g. 64 (it is {min_ram})')
+left_out = low_ram = 0
 for o in json.load(sys.stdin).get('offers', []):
     geo = o.get('geolocation') or ''
     if geo_re and not re.search(geo_re, geo):
         continue
     if str(o.get('machine_id')) in skip:
         left_out += 1; continue
+    ram = round((o.get('cpu_ram') or 0) / 1024)  # GiB, as the machine itself reports it (vast.ai's pages divide by 1000)
+    if min_ram and ram < float(min_ram):
+        low_ram += 1; continue
     disk_h = disk_gb * (o.get('storage_cost') or 0) / 730
     print(f\"{o['id']}\t{o['num_gpus']}x {o['gpu_name']}\t\${o['dph_total']:.2f}/h + disk \${disk_h:.2f}/h\t{o.get('cpu_cores_effective'):.0f} thr {(o.get('cpu_name') or '')[:22]}\t\"
-          f\"{round((o.get('cpu_ram') or 0) / 1024)} GB RAM\t{round(o.get('disk_space') or 0)} GB disk\t{round(o.get('inet_down') or 0)} Mb/s \${(o.get('inet_down_cost') or 0):.4f}/GB\t\"
+          f\"{ram} GB RAM\t{round(o.get('disk_space') or 0)} GB disk\t{round(o.get('inet_down') or 0)} Mb/s \${(o.get('inet_down_cost') or 0):.4f}/GB\t\"
           f\"rel {o.get('reliability2', 0):.3f}\t{geo}\tmachine {o.get('machine_id')}\")
 if left_out:
     print(f'({left_out} offers on EXCLUDE_MACHINES left out)', file=sys.stderr)
-" "${GEO:-}" "${MIN_DISK:-2000}" "${EXCLUDE_MACHINES:-}" ;;
+if low_ram:
+    print(f'({low_ram} offers under MIN_RAM left out)', file=sys.stderr)
+" "${GEO:-}" "${MIN_DISK:-2000}" "${EXCLUDE_MACHINES:-}" "${MIN_RAM:-}" ;;
   create)
     offer=${2:?offer id}; label=${3:-scroll-search}; disk=${4:-2000}; pub=$SSHKEY.pub
     # the machine installs the rental key's PUBLIC half itself, in case vast.ai's copy of it does not arrive. Only a file

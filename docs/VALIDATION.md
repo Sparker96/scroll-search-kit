@@ -1,11 +1,12 @@
 # Validation on public data
 
 DRAFT 2026-10-22 — the scores, sizes and counts below were re-checked against the result files (score files of the
-control runs, the rented run's check maps) on 2026-10-21 and 22, except §2's shares of inked papyrus (the content lead's
-measure); run times and speeds are from the content lead's run log. Only public, already-read scrolls appear here.
+control runs, the rented runs' check maps, the release test's letter check and logs) on 2026-10-21 and 22, except §2's
+shares of inked papyrus (the content lead's measure); run times and speeds are from the content lead's run log. Only
+public, already-read scrolls appear here.
 
 A search kit is only useful if it would see writing where writing is. We checked that on two
-public scrolls whose text is already known, then checked that a rented machine reproduces the
+public scrolls whose text is already known, then checked that rented machines reproduce the
 results of a desktop machine.
 
 ## 1. PHerc. 0343 (8.64 µm): known letters, recovered on our own stitched strip
@@ -88,10 +89,16 @@ each letter against its own gaps, at depth 0 or +4; letter 18 is reached but has
 time most of it lies on stitched strips: the three started at letters show letters 4-17 between them, and the patches
 add 1-3.
 
+The same version then ran on a rented machine with four GPUs, with a second band added (the release test in
+[COSTS](COSTS.md)). All seven of its strips started at letter points stopped below 1 cm² (letter 12 lies in two boxes),
+so, as in the second run, the patches grown at the six letter points were inked as they are. Between them they show all
+18 letters on his layer (best AUC per letter 0.68-0.93, measured as in the third run).
+
 All of these surfaces were started at letter positions the run was given, or next to them. In the first two runs, no
 strip started by the kit's own rule reached the part of his layer that holds the letters (the nearest stayed 66 voxels
 away). In the third, one did (box 10, try 3: it reaches letters 1-3 and 9-13 and shows 12 and 13, AUC 0.83 and 0.76),
-but that box had also grown patches at letter 12, which the rule can start from. So these runs check the whole chain on
+but that box had also grown patches at letter 12, which the rule can start from. In the rented run, no strip that the
+rule started and the kit kept came within 40 voxels of his layer. So these runs check the whole chain on
 the kit's own geometry (scan, surface, rendering, ink map) where writing is known to be; they do not show that the kit
 finds writing unaided.
 
@@ -131,7 +138,9 @@ the desktop machine (RTX 4070 SUPER). On the rented machine (8 × RTX 4070 Ti SU
 architecture) all 11 maps were byte-identical. The published kit repeats this check on a
 PHerc. 0343 control strip (`kit/work/check.sh`), with the run's own ink model and batch size, against reference maps
 made by that model (Reader V3 and Reader v2 are included), and reports r per map; on other GPU architectures expect
-r > 0.99 rather than identical bytes (not yet tested).
+r > 0.99 rather than identical bytes (not yet tested). In the release test ([COSTS](COSTS.md)), a second rented
+machine (4 × RTX 4070 SUPER, also Ada) ran that check before its search: all 11 Reader V3 maps were identical to the
+reference maps (r 1.00000, largest difference 0).
 
 ## 4. Reader V3 against Reader v2 on PHerc. 0343
 

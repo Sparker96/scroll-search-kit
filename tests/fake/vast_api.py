@@ -20,7 +20,7 @@ OFFERS = [{'id': 9001, 'machine_id': 111, 'num_gpus': 4, 'gpu_name': 'RTX 4070S 
            'disk_space': 1000, 'inet_down': 1000, 'inet_down_cost': 0.01, 'reliability2': 0.99,
            'geolocation': 'Region A, US'},
           {'id': 9002, 'machine_id': 111, 'num_gpus': 2, 'gpu_name': 'RTX 4070S Ti', 'dph_total': 0.56,
-           'storage_cost': 0.1, 'cpu_cores_effective': 24, 'cpu_name': 'Example CPU 48', 'cpu_ram': 65536,
+           'storage_cost': 0.1, 'cpu_cores_effective': 24, 'cpu_name': 'Example CPU 48', 'cpu_ram': 64400,
            'disk_space': 500, 'inet_down': 1000, 'inet_down_cost': 0.01, 'reliability2': 0.99,
            'geolocation': 'Region A, US'},
           {'id': 9003, 'machine_id': 222, 'num_gpus': 4, 'gpu_name': 'RTX 3090', 'dph_total': 1.22,

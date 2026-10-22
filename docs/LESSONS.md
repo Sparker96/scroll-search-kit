@@ -1,7 +1,7 @@
 # Lessons from running the search on a rented multi-GPU machine
 
-DRAFT 2026-10-21 — numbers about the rented run were re-checked against its logs on 2026-10-21; the others come from
-the content lead's tests on a desktop GPU and say so.
+DRAFT 2026-10-22 — numbers about the rented runs were re-checked against their logs on 2026-10-21 and 22; the others
+come from the content lead's tests on a desktop GPU and say so.
 
 These are the things that cost us time or money on the first rented run. Most of them are not
 specific to one provider.
@@ -98,8 +98,8 @@ if its ink workers die; network steps at a band's start are retried a few times 
 ## 9. Check that a new machine gives the same answer before trusting it
 
 Before searching, the kit renders and inks a strip whose maps we already have, and compares.
-On the same GPU architecture (Ada, sm_89) the maps were byte-identical, 11 of 11. Across
-architectures expect a correlation above 0.99 rather than identical bytes (not yet tested).
+On the same GPU architecture (Ada, sm_89) the maps were byte-identical, 11 of 11, on both rented machines we checked.
+Across architectures expect a correlation above 0.99 rather than identical bytes (not yet tested).
 
 ## 10. Memory
 
@@ -200,12 +200,26 @@ patches had grown normally (2.6-2.9 cm²) and lay partly on the inked layer (abo
 nodes within 20 voxels of the published letter mesh). The stitcher extends a surface only where many overlapping patches
 agree, and a point picked for its letters is not picked for that. Strips that the kit's own rule started (at the
 most-overlapped patch) reached the 1 cm² a strip must have in 5 of 18 tries in the same runs, whose small growth budget
-makes stitching uncertain anyway. A third run kept 3 of its 6 letter starts and 2 of its 10 rule starts, so over the
-three runs 4 of 18 letter starts and 7 of 28 rule starts reached 1 cm²: under this budget a start stalls more often than
-not, wherever it is. So a seed point that no inked strip reaches now gets the patch grown at it inked as it is, a minute
-or two of GPU time (`box_*/seeds_extra.ink.tsv` says which points were reached and which were inked this way): the
-config asked for that place to be searched, and the patch around it is what the run has there. In the second run, the
-six patches inked this way reached all 18 letters between them, and every letter shows in at least one of them. Tries
-started at seed points no longer count against `MAXTRY`: in that run they had used 3 of one box's 4 tries, leaving the
-kit's own rule a single one there. In the third run, its boxes made up to 6 tries (4 for the rule, plus one per seed
+makes stitching uncertain anyway. A third run kept 3 of its 6 letter starts and 2 of its 10 rule starts, and a fourth,
+on a rented machine, none of its 7 letter starts (letter 12 lies in two boxes) and 4 of the 15 rule starts in the same
+band. Over the four runs, 4 of 25 letter starts and 11 of 43 rule starts in this band reached 1 cm²: here, under this
+budget, a start stalls more often than not, wherever it is. (In the fourth run's second band, which holds no known
+letters, 7 of 12 rule starts did.) So a seed point that no inked strip reaches now gets the patch grown at it inked as
+it is, a minute or two of GPU time (`box_*/seeds_extra.ink.tsv` says which points were reached and which were inked this
+way): the config asked for that place to be searched, and the patch around it is what the run has there. In the second
+run, the six patches inked this way reached all 18 letters between them, and every letter shows in at least one of them.
+Tries started at seed points no longer count against `MAXTRY`: in that run they had used 3 of one box's 4 tries, leaving
+the kit's own rule a single one there. In the third run, its boxes made up to 6 tries (4 for the rule, plus one per seed
 point).
+
+## 19. A rented machine can refuse your SSH key
+
+On one of our three rentals, the machine never accepted the rental key, although vast.ai said the key was attached:
+SSH answered `Permission denied (publickey)` on both of vast.ai's routes to it. Detaching and re-attaching the key and
+a reboot did not help, and we destroyed it after 28 minutes (~$0.74 for nothing). We do not know why. Since then,
+`vast.sh create` has the machine install the key's public half itself when it starts, and write a short report of its
+SSH setup (the key file, its permissions, the SSH server's settings) into its log, which `vast.sh logs` reads through
+the API, without SSH. On the next rental the key was accepted 2 min 44 s after `create` (until then SSH said
+`Connection refused` while the machine started), and the report was in the log. Whether vast.ai's own copy of the key
+would also have worked there, the key file does not show. What to do when it happens: [RENTING](RENTING.md), "The
+machine refuses the SSH key".

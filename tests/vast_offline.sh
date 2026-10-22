@@ -1,8 +1,9 @@
 #!/bin/bash
 # vast_offline.sh — kit/vast.sh's API commands against a stand-in vast.ai (tests/fake/vast_api.py in place of curl, a
-# stand-in ssh that refuses): no account, no network, no rental, seconds. Checks offers (machine ids, EXCLUDE_MACHINES),
-# create (the request it sends, IMAGE, the checks on the public key), the start-up script itself (run in a user
-# namespace with /root on a test folder, if this machine allows that), status, logs, destroy, balance and the usage text.
+# stand-in ssh that refuses): no account, no network, no rental, seconds. Checks offers (machine ids, EXCLUDE_MACHINES,
+# MIN_RAM), create (the request it sends, IMAGE, the checks on the public key), the start-up script itself (run in a
+# user namespace with /root on a test folder, if this machine allows that), status, logs, destroy, balance and the usage
+# text.
 # usage: tests/vast_offline.sh
 set -uo pipefail
 R=$(cd "$(dirname "$0")/.." && pwd)
@@ -32,14 +33,15 @@ print(*(hit[-1]['method'], hit[-1]['auth'], hit[-1]['data']) if hit else ('none'
 echo "== usage"
 out=$($V 2>&1); rc=$?
 [ "$rc" = 1 ] && [ "$(head -n 1 <<< "$out")" = "# vast.sh — your own machine's handle on a rented vast.ai machine (vast.ai REST API)." ] \
-  && grep -q 'vast.sh logs ID' <<< "$out" && grep -q 'EXCLUDE_MACHINES' <<< "$out" && tail -n 1 <<< "$out" | grep -q 'DAEMON_LOGS=1' \
-  && ! grep -q '^set ' <<< "$out" && ok "no command: the whole header is printed, and nothing after it" || bad "usage (exit $rc): $out"
+  && grep -q 'vast.sh logs ID' <<< "$out" && grep -q 'EXCLUDE_MACHINES' <<< "$out" && grep -q 'MIN_RAM' <<< "$out" \
+  && tail -n 1 <<< "$out" | grep -q 'DAEMON_LOGS=1' && ! grep -q '^set ' <<< "$out" && ok "no command: the whole header is printed, and nothing after it" || bad "usage (exit $rc): $out"
 
 echo "== offers"
 out=$($V offers 2> "$T/offers.err"); rc=$?
 [ "$rc" = 0 ] && [ "$(grep -c . <<< "$out")" = 3 ] && [ "$(grep -c $'\tmachine 111$' <<< "$out")" = 2 ] \
   && grep -q $'^9003\t.*\tmachine 222$' <<< "$out" && ok "3 offers, each line ending with its machine id" || bad "offers (exit $rc): $out"
 [ "$(lastcall /bundles/ | cut -d' ' -f2)" = False ] && ok "offers sends no API key" || bad "offers sent the key: $(lastcall /bundles/)"
+q0=$(lastcall /bundles/)
 out=$(EXCLUDE_MACHINES=111 $V offers 2> "$T/offers.err"); rc=$?
 [ "$rc" = 0 ] && [ "$(grep -c . <<< "$out")" = 1 ] && grep -q '^9003' <<< "$out" \
   && grep -qx '(2 offers on EXCLUDE_MACHINES left out)' "$T/offers.err" \
@@ -50,6 +52,18 @@ out=$(EXCLUDE_MACHINES='111, 222' $V offers 2> "$T/offers.err"); rc=$?
 out=$(EXCLUDE_MACHINES='111;x' $V offers 2> "$T/offers.err"); rc=$?
 [ "$rc" != 0 ] && [ -z "$out" ] && grep -q 'EXCLUDE_MACHINES must be machine ids' "$T/offers.err" \
   && ok "a malformed EXCLUDE_MACHINES stops offers (exit $rc)" || bad "malformed exclude (exit $rc): $out"
+out=$(MIN_RAM=64 $V offers 2> "$T/offers.err"); rc=$?
+[ "$rc" = 0 ] && [ "$(grep -c . <<< "$out")" = 2 ] && ! grep -q '^9002' <<< "$out" \
+  && grep -qx '(1 offers under MIN_RAM left out)' "$T/offers.err" \
+  && ok "MIN_RAM=64 leaves out the offer printed with 63 GB RAM, and says so" || bad "min ram (exit $rc): $out $(cat "$T/offers.err")"
+[ "$(lastcall /bundles/)" = "$q0" ] && ok "MIN_RAM does not change the request sent to vast.ai" \
+  || bad "the request changed: $q0 -> $(lastcall /bundles/)"
+out=$(MIN_RAM=63 $V offers 2> "$T/offers.err"); rc=$?
+[ "$rc" = 0 ] && [ "$(grep -c . <<< "$out")" = 3 ] && grep -q $'^9002\t.*\t63 GB RAM\t' <<< "$out" && [ ! -s "$T/offers.err" ] \
+  && ok "MIN_RAM compares with the RAM as printed: 63 keeps the offer printed with 63 GB" || bad "min ram 63 (exit $rc): $out"
+out=$(MIN_RAM=64GB $V offers 2> "$T/offers.err"); rc=$?
+[ "$rc" != 0 ] && [ -z "$out" ] && grep -q 'MIN_RAM must be a number of GB' "$T/offers.err" \
+  && ok "a malformed MIN_RAM stops offers (exit $rc)" || bad "malformed min ram (exit $rc): $out"
 
 echo "== create"
 id=$($V create 9003 kit-test 400 2> "$T/create.err"); rc=$?
