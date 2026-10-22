@@ -10,7 +10,9 @@ mesh nodes, and none in layers 40+ of a top-left corner, like a surface leaving 
 FAKE_TRACE_SAME=1 (every stitched strip lies on the same sheet), FAKE_TRACE_FAIL_META=<regex on the start patch's
 meta.json> (only those tracers make nothing, like the real stitcher stalling at once), FAKE_TRACE_AT_START=1 (a strip is
 centred on its start patch, so it reaches the point that patch grew from), FAKE_SLEEP=<seconds per call>,
-FAKE_IGNORE_TERM=1 (ignore SIGTERM, as the real stitcher does: only KILL ends it).
+FAKE_IGNORE_TERM=1 (ignore SIGTERM, as the real stitcher does: only KILL ends it), FAKE_GROW_HANG=<regex on the patches
+path and the params file> (the first matching grower of each box hangs for FAKE_GROW_SLEEP seconds [600] and makes
+nothing, until GROW_TIMEOUT stops it; with FAKE_GROW_IGNORE_TERM=<regex> it also ignores SIGTERM).
 """
 import json
 import os
@@ -45,6 +47,19 @@ def grow(args):
     if params["mode"] == "expansion" and os.environ.get("FAKE_GROW_FAIL") and re.search(os.environ["FAKE_GROW_FAIL"], str(patches)):
         print("pthread_create failed: Resource temporarily unavailable (fake)")
         return 1
+    hang = os.environ.get("FAKE_GROW_HANG")
+    if hang and re.search(hang, f"{patches} {args[2]}"):
+        try:   # only the first matching grower of each box hangs: it leaves a marker in the box folder
+            os.close(os.open(patches.parent / ".fake_hang", os.O_CREAT | os.O_EXCL | os.O_WRONLY))
+        except FileExistsError:
+            pass
+        else:
+            it = os.environ.get("FAKE_GROW_IGNORE_TERM")
+            if it and re.search(it, f"{patches} {args[2]}"):
+                signal.signal(signal.SIGTERM, signal.SIG_IGN)
+            print("hanging (fake)", flush=True)
+            time.sleep(float(os.environ.get("FAKE_GROW_SLEEP", "600")))
+            return 1
     rng = random.Random(os.getpid() ^ int(time.time() * 1e6))
     existing = sorted(patches.glob("auto_grown_*"))
     if len(args) >= 5:

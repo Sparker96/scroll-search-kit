@@ -8,8 +8,8 @@
 #   vast.sh status ID              state, address, price;   vast.sh wait ID  (until running and SSH answers)
 #   vast.sh ssh ID [CMD...]        run a command there (or log in)
 #   vast.sh push ID DIR            copy DIR's contents to /root/kit there (tar over SSH, no user or group names)
-#   vast.sh pull ID REMOTE LOCAL   copy REMOTE (a folder there) into LOCAL, skipping *.zarr (tar over SSH; owners and
-#                                  setuid bits from there are not kept)
+#   vast.sh pull ID REMOTE LOCAL   copy REMOTE (a folder there) into LOCAL, skipping *.zarr (tar over SSH; only plain
+#                                  files and folders are written, inside LOCAL)
 #   vast.sh destroy ID             destroy the machine and its disk (billing stops)
 #   vast.sh balance                remaining prepaid credit
 # Offer filters (environment): MIN_GPUS [4], MIN_THREADS [96], MIN_DISK GB [2000], MIN_INET Mb/s [1000], MIN_REL
@@ -93,7 +93,36 @@ print(i.get('id'), i.get('actual_status'), i.get('intended_status'), f\"\${(i.ge
   ssh) id=${2:?id}; shift 2; sshto "$id" "$@" ;;
   push) id=${2:?id}; dir=${3:?dir}; tar cf - --numeric-owner -C "$dir" . | sshto "$id" 'mkdir -p /root/kit && tar xf - -C /root/kit && du -sh /root/kit' ;;
   pull) id=${2:?id}; rem=${3:?remote}; loc=${4:?local}; mkdir -p "$loc"
-        sshto "$id" "cd '$rem' && tar cf - --exclude='*.zarr' ." | tar xf - --no-same-owner --no-same-permissions -C "$loc" && du -sh "$loc" ;;
+        # what comes back is untrusted: only plain files and folders are written, never outside LOCAL and never through a
+        # link (python, not tar, so this holds whatever tar your machine has); anything else is skipped and named
+        sshto "$id" "cd '$rem' && tar cf - --exclude='*.zarr' ." | python3 -I -c "
+import os, shutil, sys, tarfile
+dest = os.path.realpath(sys.argv[1]); skipped = []; nfile = 0
+def inside(p):
+    return p == dest or p.startswith(dest + os.sep)
+with tarfile.open(fileobj=sys.stdin.buffer, mode='r|') as t:
+    for m in t:
+        name = os.path.normpath(m.name.lstrip('/'))
+        target = os.path.join(dest, name)
+        if (name == '..' or name.startswith('..' + os.sep) or not (m.isfile() or m.isdir())
+                or not inside(os.path.realpath(target if m.isdir() else os.path.dirname(target)))):
+            skipped.append(m.name); continue
+        if m.isdir():
+            os.makedirs(target, exist_ok=True); continue
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        if os.path.islink(target) or (os.path.lexists(target) and not os.path.isfile(target) and not os.path.isdir(target)):
+            os.unlink(target)   # a link or special file already there is replaced, never written through
+        if os.path.isdir(target):
+            skipped.append(m.name); continue
+        with t.extractfile(m) as src, open(target, 'wb') as out:
+            shutil.copyfileobj(src, out, 1 << 20)
+        os.utime(target, (m.mtime, m.mtime)); nfile += 1
+print(nfile, 'files')
+if skipped:
+    print(f'WARNING: skipped {len(skipped)} entries that were not plain files or folders, or pointed outside {dest}:',
+          ', '.join(skipped[:10]))
+    sys.exit(1)
+" "$loc" && du -sh "$loc" ;;
   destroy)
     id=${2:?id}
     api -X DELETE "$API/instances/$id/"; echo

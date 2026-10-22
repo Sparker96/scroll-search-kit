@@ -10,7 +10,7 @@ fi
 set -uo pipefail
 R=${RUN_FAKE_REPO:-$(cd "$(dirname "$0")/.." && pwd)}
 PYBIN=${1:-${PYBIN:-python3}}; shift || true
-SCEN=${*:-happy nodata minnew cover nostrips reserve blank outside inkfail renderfail netdown gpufail restart diskfull tracetimeout noumb workerdeath boxfail resume stop orphans extraseeds check safety dryrun}
+SCEN=${*:-happy nodata minnew cover nostrips reserve blank outside inkfail renderfail netdown gpufail restart diskfull tracetimeout growtimeout noumb workerdeath boxfail resume stop orphans extraseeds check safety dryrun}
 T=$(mktemp -d "${TMPDIR:-/tmp}/kit-test.XXXXXX")
 export HOME=$T WORK=$T/work VC=$R/tests/fake/AppRun PY=$PYBIN FAKE_PY=$PYBIN VILLA=$T/villa MODELS=$T/models NGPU=2
 mkdir -p "$WORK" "$VILLA"
@@ -275,6 +275,22 @@ for name, x0 in (('auto_grown_a', 1000), ('auto_grown_b', 1100), ('auto_grown_c'
       grep -q 'stopped by TRACE_TIMEOUT' "$T"/results/tracetimeout.env/band_*/box_00/run.log && ok "a hung stitcher is stopped" \
         || bad "no TRACE_TIMEOUT line"
       [ "$rc" = 0 ] && ok "the run still finishes (exit 0; the other boxes' strips are inked)" || bad "tracetimeout: exit $rc"
+      ;;
+    growtimeout)
+      # a grower that hangs is stopped by GROW_TIMEOUT: TERM at the limit, KILL 30 s later if it ignores TERM (box.sh's
+      # timeout -k 30); its box goes on with the patches the other growers made, and the run finishes
+      c=$(config growtimeout "GROW_TIMEOUT=3" "THREADS=8")
+      FAKE_GROW_HANG='box_00/expansion_params\.json' FAKE_GROW_IGNORE_TERM='band_z09000-10000/' \
+        timeout 900 bash "$WORK/run.sh" "$c" > "$T/growtimeout.log" 2>&1; rc=$?
+      for b in 09000-10000:33:45:KILL 10000-11000:3:10:TERM; do
+        IFS=: read -r z lo hi how <<< "$b"
+        h=$(grep -l 'hanging (fake)' "$T"/results/growtimeout.env/band_z$z/box_00/logs/exp1t1_*.log 2> /dev/null | head -n 1)
+        s=$(cat "$h.secs" 2> /dev/null)
+        if [ -n "$s" ] && [ "$s" -ge "$lo" ] && [ "$s" -le "$hi" ]; then ok "band z$z: the hung grower was stopped by $how after ${s} s"
+        else bad "band z$z: hung grower ${h:-not found}, ${s:-no} s (expected $lo-$hi s)"; fi
+      done
+      [ "$rc" = 0 ] && ok "the run still finishes (exit 0)" || bad "growtimeout: exit $rc"
+      pgrep -f "fake_vc.py grow $T/" > /dev/null && bad "a stand-in grower is still running" || ok "no grower left running"
       ;;
     noumb)
       c=$(config noumb "UMBILICUS=$T/missing_umbilicus.json")

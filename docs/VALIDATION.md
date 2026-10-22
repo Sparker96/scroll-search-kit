@@ -1,7 +1,8 @@
 # Validation on public data
 
 DRAFT 2026-10-21 — the scores, sizes and counts below were re-checked against the result files (score files of the
-control runs, the rented run's check maps) on 2026-10-21; run times and speeds are from the content lead's run log. Only public, already-read scrolls appear here.
+control runs, the rented run's check maps) on 2026-10-21, except §2's shares of inked papyrus (the content lead's
+measure); run times and speeds are from the content lead's run log. Only public, already-read scrolls appear here.
 
 A search kit is only useful if it would see writing where writing is. We checked that on two
 public scrolls whose text is already known, then checked that a rented machine reproduces the
@@ -101,9 +102,11 @@ team's 2.4 µm ink result with r = 0.65, 0.63, 0.53, 0.52 and 0.46 for the best 
 of the same place, on the 9.362 µm scan type of the eligible scrolls. Right: the other side of our surface, where no
 ink is expected. PHerc. 0814 segment and reading: Vesuvius Challenge open data (CC-BY-NC 4.0).*
 
-So on the eligible scan type, this pipeline sees writing where its surface is on the inked layer.
-A blank result therefore means one of two things: no writing there, or the surface was not on the
-inked layer. The kit cannot tell those apart by itself.
+So on the eligible scan type, this pipeline can see writing where its surface is on the inked layer, but not
+everywhere: two of the weaker patches lie on the team's layer for 84 % and 92 % of their area, over as large a share of
+inked papyrus as the best five (19 % and 14 % of their samples there, against 12-19 %; inked = the top 10 % of the
+team's reading), and still score only 0.23. A blank result therefore means one of three things: no writing there, a
+surface off the inked layer, or writing the ink model did not pick up. The kit cannot tell these apart by itself.
 
 ## 3. Same answer on a rented machine
 

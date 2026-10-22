@@ -57,8 +57,8 @@ check to run from your own machine.
 
 - **PHerc. 0343** (known letters): on our own automatically grown, stitched strip, the known letters come back at
   whatever depth that part of the strip needs (r 0.63-0.89 against the map of his own surface; Reader V3 0.70-0.88).
-- **PHerc. 0814**, on the 9.362 µm scan type of the eligible scrolls: our own patches show the published text lines
-  where they lie on the inked layer (r up to 0.65).
+- **PHerc. 0814**, on the 9.362 µm scan type of the eligible scrolls: our best patches show the published text lines
+  (r up to 0.65 on the inked layer), but lying on that layer is not enough: two patches that do score only 0.23.
 - **Same answer on rented hardware**: a rented 8-GPU machine reproduced a desktop machine's maps byte for byte (11/11
   maps, same GPU architecture). The kit runs this check first.
 - **Reader V3, the default model**, separates the known PHerc. 0343 letters from the gaps between them a little better

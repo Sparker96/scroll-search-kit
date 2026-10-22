@@ -29,6 +29,7 @@ files; everything else is the kit's real code, run in a throw-away HOME. Scenari
 | restart | workers retired by a passing GPU fault start again and finish the queue (exit 6, failed strips reported); a worker killed mid-strip: its tools are stopped, its strip requeued, the worker started again, every strip done |
 | diskfull | a disk that stays full stops the ink workers and the run (exit != 0), strips kept in the queue |
 | tracetimeout | a hung stitcher is stopped by `TRACE_TIMEOUT` and the run still finishes |
+| growtimeout | a grower that hangs is stopped by `GROW_TIMEOUT` (TERM; KILL 30 s later if it ignores TERM); its box goes on with the other growers' patches and the run finishes |
 | noumb | a config whose scroll-axis file is missing stops at once |
 | workerdeath | if the ink workers die mid-run, `run.sh` stops the bands (exit 4) and leaves nothing running |
 | boxfail | a box whose growth keeps failing: the failed pass is detected, the band is tried again (`BAND_TRIES`), then the run ends NOT COMPLETE naming that band (exit 5) while the other band finishes |

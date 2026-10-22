@@ -51,6 +51,9 @@ kit/vast.sh destroy ID      # billing stops only when the machine is DESTROYED (
 kit/vast.sh balance
 ```
 
+A pull treats what comes back as untrusted. It writes only plain files and folders, and only inside the local folder.
+Links, device files and names that point outside it are skipped and named; the pull then ends with exit 1.
+
 ## If something goes wrong
 
 - **Stopped or interrupted run:** start the same `run.sh` command again; it continues where it stopped.
