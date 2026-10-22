@@ -38,6 +38,13 @@ What helps:
   (`INK_PER_GPU` stays 1);
 - when renting, choose by CPU threads per GPU and clock speed, not by the number of GPUs.
 
+Not tested here: two open pull requests to villa's `merge-ink-pipelines` branch, not in the code this kit runs, go
+after this bottleneck. `--gpu-normalize` ([#2189](https://github.com/ScrollPrize/villa/pull/2189), armando-gaona)
+normalises the tiles on the GPU; its author reports Reader V3 inking a full segment on an NVIDIA L4 in 48 s instead of
+65 s, with 0.002 % of the pixels 1/255 apart. [#2213](https://github.com/ScrollPrize/villa/pull/2213) (phippsrtyler)
+reports 1.9-4.7× more segments per hour with 2-4 `infer.py` processes per GPU, in two of its three tests together with
+that flag. With the normalising off the CPU, `INK_PER_GPU` above 1 may pay off where it did not on our desktop.
+
 ## 3. Stitching time is unpredictable
 
 The tracer (`vc_grow_seg_from_segments`) took anywhere from 24 s to 515 s per strip, about 10×,
@@ -187,14 +194,18 @@ are ending waits up to 2 minutes for them. A `run.sh` started next to one that i
 
 In two release-candidate runs of the quick PHerc. 0343 control, the kit started strips at six of the known letters
 (`SEEDS_EXTRA`). Of these 12 starts, one grew into a 1.55 cm² strip that reached 10 of the 18 letters and shows the
-eight it covers on the inked layer in the run's own map ([VALIDATION](VALIDATION.md) §1). The stitcher stopped the other eleven early ("stopping growth after
-5 expansions with no valid-count increase", 0.05-0.90 cm²), although their start patches had grown normally (2.6-2.9
-cm²) and lay partly on the inked layer (about a third to three quarters of their nodes within 20 voxels of the
-published letter mesh). The stitcher extends a surface only where many overlapping patches agree, and a point picked
-for its letters is not picked for that. Strips that the kit's own rule started (at the most-overlapped patch) reached
-the 1 cm² a strip must have in 5 of 18 tries in the same runs, whose small growth budget makes stitching uncertain
-anyway. So a seed point that no inked strip reaches now gets the patch grown at it inked as it is, a minute or two of
-GPU time (`box_*/seeds_extra.ink.tsv` says which points were reached and which were inked this way): the config asked
-for that place to be searched, and the patch around it is what the run has there. In the second run, the six patches
-inked this way reached all 18 letters between them, and every letter shows in at least one of them. Tries started at seed points no longer count against `MAXTRY`: in
-that run they had used 3 of one box's 4 tries, leaving the kit's own rule a single one there.
+eight it covers on the inked layer in the run's own map ([VALIDATION](VALIDATION.md) §1). The stitcher stopped the other
+eleven early ("stopping growth after 5 expansions with no valid-count increase", 0.05-0.90 cm²), although their start
+patches had grown normally (2.6-2.9 cm²) and lay partly on the inked layer (about a third to three quarters of their
+nodes within 20 voxels of the published letter mesh). The stitcher extends a surface only where many overlapping patches
+agree, and a point picked for its letters is not picked for that. Strips that the kit's own rule started (at the
+most-overlapped patch) reached the 1 cm² a strip must have in 5 of 18 tries in the same runs, whose small growth budget
+makes stitching uncertain anyway. A third run kept 3 of its 6 letter starts and 2 of its 10 rule starts, so over the
+three runs 4 of 18 letter starts and 7 of 28 rule starts reached 1 cm²: under this budget a start stalls more often than
+not, wherever it is. So a seed point that no inked strip reaches now gets the patch grown at it inked as it is, a minute
+or two of GPU time (`box_*/seeds_extra.ink.tsv` says which points were reached and which were inked this way): the
+config asked for that place to be searched, and the patch around it is what the run has there. In the second run, the
+six patches inked this way reached all 18 letters between them, and every letter shows in at least one of them. Tries
+started at seed points no longer count against `MAXTRY`: in that run they had used 3 of one box's 4 tries, leaving the
+kit's own rule a single one there. In the third run, its boxes made up to 6 tries (4 for the rule, plus one per seed
+point).

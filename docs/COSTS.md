@@ -80,6 +80,7 @@ So a whole scroll is not yet affordable with this recipe. What would change it, 
 | ink a cover of the grown patches instead of strips | in ink tests of two boxes: 4.3× and 6.8× the unique area of 12 stitched strips in the same box, at 1.4-1.5 cm² inked per new cm², once patches outside the masked scan are left out (45 % of the first box's cover rendered empty; the second box's, picked with the mask check, had data in all 94 patches) | `COVER`, `COVER_FRAC`, `MASK_CHECK` |
 | skip strips that add little new area | in the rented run, a 40 % threshold would have cut render + ink area by 32 % and lost 12 % of the unique area | `MIN_NEW` |
 | a machine with faster or more CPU cores per GPU | faster ink while it stays CPU-bound | rent accordingly |
+| normalising on the GPU (`--gpu-normalize`) and 2-4 ink processes per GPU, from open villa pull requests ([#2189](https://github.com/ScrollPrize/villa/pull/2189), [#2213](https://github.com/ScrollPrize/villa/pull/2213)) not in the code this kit runs | their authors report Reader V3 1.37× faster with practically the same map, and 1.9-4.7× more segments per hour with 2-4 processes per GPU; our ink step is CPU-bound on exactly this normalising ([LESSONS](LESSONS.md) §2) | `INK_PER_GPU`; the flag needs a newer villa |
 | one shared GPU queue (done in this version) | no GPU idles while another box finishes | — |
 
 Our unverified guess with these fixes: ~$60-120 and 20-30 h for a whole scroll. We will replace the guess with

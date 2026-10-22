@@ -1,7 +1,7 @@
 # Validation on public data
 
-DRAFT 2026-10-21 — the scores, sizes and counts below were re-checked against the result files (score files of the
-control runs, the rented run's check maps) on 2026-10-21, except §2's shares of inked papyrus (the content lead's
+DRAFT 2026-10-22 — the scores, sizes and counts below were re-checked against the result files (score files of the
+control runs, the rented run's check maps) on 2026-10-21 and 22, except §2's shares of inked papyrus (the content lead's
 measure); run times and speeds are from the content lead's run log. Only public, already-read scrolls appear here.
 
 A search kit is only useful if it would see writing where writing is. We checked that on two
@@ -80,10 +80,20 @@ on them (0.67). Bottom: the distance between the two surfaces along his normal: 
 his layer, magenta up to 20 voxels outside. Letters first found by Erwin Nieuwlaar (First Letters, 2026); Reader v2 and
 V3 by Domenico Russo; scan: PHerc. 0343, Vesuvius Challenge open data. Image CC BY-NC 4.0.*
 
-All of these surfaces were started at letter positions the run was given. They check the whole chain on the kit's own
-geometry (scan, surface, rendering, ink map) where writing is known to be; they do not show that the kit finds writing
-unaided: no strip started by the kit's own rule reached the part of his layer that holds the letters in either run (the
-nearest stayed 66 voxels away).
+The third and last release-candidate run (93 minutes) gave each seed point a try of its own on top of the box's
+`MAXTRY`. Three of its six strips started at letter points grew long enough to keep (from letters 6, 12 and 16;
+1.05-2.88 cm²), and its summary counts each of the six points once: 3 reached by what was inked, 3 inked as their own
+patch. Between them, the inked strips and patches show 17 of the 18 letters on his layer (best AUC per letter 0.72-0.98,
+each letter against its own gaps, at depth 0 or +4; letter 18 is reached but has too few samples on his layer). This
+time most of it lies on stitched strips: the three started at letters show letters 4-17 between them, and the patches
+add 1-3.
+
+All of these surfaces were started at letter positions the run was given, or next to them. In the first two runs, no
+strip started by the kit's own rule reached the part of his layer that holds the letters (the nearest stayed 66 voxels
+away). In the third, one did (box 10, try 3: it reaches letters 1-3 and 9-13 and shows 12 and 13, AUC 0.83 and 0.76),
+but that box had also grown patches at letter 12, which the rule can start from. So these runs check the whole chain on
+the kit's own geometry (scan, surface, rendering, ink map) where writing is known to be; they do not show that the kit
+finds writing unaided.
 
 ## 2. PHerc. 0814 (9.362 µm, the scan type of the eligible scrolls): known text lines
 
@@ -107,6 +117,12 @@ everywhere: two of the weaker patches lie on the team's layer for 84 % and 92 % 
 inked papyrus as the best five (19 % and 14 % of their samples there, against 12-19 %; inked = the top 10 % of the
 team's reading), and still score only 0.23. A blank result therefore means one of three things: no writing there, a
 surface off the inked layer, or writing the ink model did not pick up. The kit cannot tell these apart by itself.
+
+Reader V3, the kit's default model, on the same patches and samples: its maps match the team's reading a little better
+than Reader v2's on 11 of the 12 patches (r +0.01 to +0.10 at depth 0; median 0.36 → 0.42), and the same five patches
+show the text clearly (r 0.56-0.70, against 0.46-0.65 with Reader v2). The two weaker patches that lie on the team's
+layer rise only from 0.23 to 0.29 and 0.27: where the surface is on the inked layer and the match stays low, the model
+is not the only limit.
 
 ## 3. Same answer on a rented machine
 

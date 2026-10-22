@@ -1,6 +1,6 @@
 # Tests
 
-Two levels, both CPU-only.
+Three parts, all CPU-only.
 
 ## `run_fake.sh` — the orchestration, with stand-in tools (seconds per scenario, no downloads)
 
@@ -54,3 +54,22 @@ VC3D, its strips rendered from the scan; only the ink step is a stand-in. Downlo
 
 The ink model itself, the GPU and the same-answer check against real reference maps are tested on a GPU machine
 (`kit/work/check.sh`), not here.
+
+## `vast_offline.sh` — `kit/vast.sh` against a stand-in vast.ai (seconds, no account, no network)
+
+```bash
+tests/vast_offline.sh
+```
+
+`tests/fake/vast_api.py` takes the place of curl and answers from canned offers and a canned machine; ssh is a
+stand-in that refuses. It checks:
+- `offers`: machine ids, `EXCLUDE_MACHINES`.
+- `create`: what it sends, `IMAGE`, and that a `.pub` file that is not one plain key line stops it before any API call.
+- The machine's start-up script itself, run as root of a test folder in a user namespace where the machine allows that.
+  The key is added once, on its own line, the modes are fixed and the report is written, also when `.ssh` is a link
+  (as vast.ai's image makes it when homes live on a volume).
+- `status`, `destroy`, `balance`, and `logs`: the log link is fetched without the API key, and control characters are
+  replaced.
+- The API key never appears in a request.
+
+What it cannot show: how the real vast.ai API and a real machine answer. That is the rental test's job.

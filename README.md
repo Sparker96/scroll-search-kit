@@ -58,18 +58,19 @@ check to run from your own machine.
 - **PHerc. 0343** (known letters): on our own automatically grown, stitched strip, the known letters come back at
   whatever depth that part of the strip needs (r 0.63-0.89 against the map of his own surface; Reader V3 0.70-0.88).
 - **PHerc. 0814**, on the 9.362 µm scan type of the eligible scrolls: our best patches show the published text lines
-  (r up to 0.65 on the inked layer), but lying on that layer is not enough: two patches that do score only 0.23.
+  (r up to 0.70 on the inked layer with Reader V3, 0.65 with Reader v2), but lying on that layer is not enough: two
+  patches that do score only 0.23-0.29.
 - **Same answer on rented hardware**: a rented 8-GPU machine reproduced a desktop machine's maps byte for byte (11/11
   maps, same GPU architecture). The kit runs this check first.
 - **Reader V3, the default model**, separates the known PHerc. 0343 letters from the gaps between them a little better
   than Reader v2 (AUC 0.746 vs 0.725 on the inked layer, 0.648-0.661 vs 0.616 one layer off), at the same
   or better speed. It draws false strokes where its input is empty; the kit removes those (`nodata.py`).
-- **Release-candidate runs** of the quick configuration on one desktop RTX 4070 SUPER (about 75 minutes each) passed
+- **Release-candidate runs** of the quick configuration on one desktop RTX 4070 SUPER (75-95 minutes each) passed
   the same-answer check (11/11 maps identical) and show the known PHerc. 0343 letters in their own maps, on surfaces the
-  kit grew at six letter positions it was given (all 18 letters). That checks the pipeline from scan to ink
-  map, not that the kit finds writing unaided. Earlier candidates passed a stop in the middle of inking with an
-  immediate restart, and a resumed run. 25 scenarios on stand-in tools (`tests/`) check the orchestration and its
-  failure handling.
+  kit grew at six letter positions it was given (in the last run, 17 of the 18 letters, most of them on stitched
+  strips). That checks the pipeline from scan to ink map, not that the kit finds writing unaided. Earlier candidates
+  passed a stop in the middle of inking with an immediate restart, and a resumed run. 26 scenarios on stand-in tools
+  (`tests/`) check the orchestration and its failure handling.
 
 See [docs/VALIDATION.md](docs/VALIDATION.md), including what this does *not* show.
 
@@ -91,7 +92,7 @@ kit/vast.sh destroy ID                               # billing stops only when t
 ```
 
 For a first try, `kit/config/control-0343-quick.env` searches the same band with a small growth budget and 2 strips per
-box (about 75 minutes on one desktop RTX 4070 SUPER, from setup to the last map), and starts strips at six of the known
+box (75-95 minutes on one desktop RTX 4070 SUPER, from setup to the last map), and starts strips at six of the known
 letters (`SEEDS_EXTRA`; a letter that no strip reaches gets the patch grown there inked instead), so its maps can be
 checked for them.
 
@@ -108,6 +109,9 @@ checked for them.
 
 - Reviewing the maps is still manual. We found no automatic score that reliably puts real
   writing above the blob fields and crack edges that fire on blank papyrus.
+- A map that shows no writing does not mean there is none: on PHerc. 0814, patches that lie on the inked layer can
+  still score low with either model ([VALIDATION](docs/VALIDATION.md) §2). "Searched" in these pages means read at 11
+  depths, not checked for writing.
 - Where the surface prediction merges sheets, the grown surfaces cut across layers and read
   nothing; the kit does not detect this by itself.
 - Throughput depends heavily on the CPU (the ink step is CPU-bound on slow-clock server CPUs).

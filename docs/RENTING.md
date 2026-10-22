@@ -13,7 +13,10 @@ on the rented machine. Prices change by the hour; check before you rent.
 3. **SSH key for rented machines only.** `ssh-keygen -t ed25519 -C rented-machines -f ~/.ssh/vesuvius_rental` (or set
    `RENTAL_KEY`). `-C` sets the comment that travels with the public half (by default your user and computer name).
    Add the **public** half (`.pub`) on your vast.ai account's SSH keys page; vast.ai copies it into every new machine.
-   `vast.sh` connects with this key only, with agent and X11 forwarding off.
+   `vast.sh` connects with this key only, with agent and X11 forwarding off. `vast.sh create` also has the machine add
+   this public half itself when it starts, in case vast.ai's copy does not arrive, and report its SSH setup (see "The
+   machine refuses the SSH key" below). It refuses a `.pub` file that is not exactly one plain key line: no quotes in
+   the comment.
 4. **Build the kit folder:** `kit/make_kit.sh build/kit` (downloads the pinned VC3D build and the control data from
    this repository's release, checks their checksums, and refuses to build if anything looks like a secret).
 5. **Write a config** for your scroll: copy `kit/config/TEMPLATE.env` into `build/kit/config/`. Start with the
@@ -24,11 +27,15 @@ on the rented machine. Prices change by the hour; check before you rent.
 ```bash
 kit/vast.sh offers                          # cheapest fitting machines; filters: MIN_GPUS, MIN_THREADS, GEO, ...
 kit/vast.sh create OFFER my-search 2000     # rent it with a 2000 GB disk; prints the instance ID
-kit/vast.sh wait ID                         # until it runs and SSH answers (~1-3 min)
+kit/vast.sh wait ID                         # until it runs and SSH answers (~1-3 min; not in 5 min: see below)
 kit/vast.sh push ID build/kit               # copies the kit to /root/kit
 kit/vast.sh ssh ID 'bash /root/kit/setup.sh /root/kit/config/my-scroll.env'      # ~1-5 min
 kit/vast.sh ssh ID 'setsid nohup bash /root/work/run.sh /root/kit/config/my-scroll.env > /root/run.log 2>&1 < /dev/null &'
 ```
+
+`offers` ends each line with the machine's id: `EXCLUDE_MACHINES=12345,67890 kit/vast.sh offers` leaves machines out,
+for example one that refused your key. `create` rents vast.ai's base image in the build vast.ai picks for the machine's
+driver; `IMAGE=...` rents another image or build instead. `kit/vast.sh status ID` shows the machine id and the image.
 
 `run.sh` first runs the same-answer check with the config's ink model and batch size, and stops if it fails (see
 `results/<run>/check/check.tsv`) or if the control has no reference maps made by that model (the kit's control has
@@ -56,6 +63,14 @@ Links, device files and names that point outside it are skipped and named; the p
 
 ## If something goes wrong
 
+- **The machine refuses the SSH key** (`kit/vast.sh ssh ID true` says `Permission denied (publickey)`): `vast.sh wait`
+  keeps trying for up to 30 minutes without saying why, so watch the clock instead. If SSH does not answer 5 minutes
+  after `kit/vast.sh status ID` first says `running`, stop `wait` (Ctrl-C) and keep the machine's log:
+  `kit/vast.sh logs ID > refused.log`. It is read through the API, so no SSH is needed. If vast.ai passes the start-up
+  script's output to the log, the kit's report in it shows the key file, its permissions and the SSH server's
+  settings. Then destroy the machine (`kit/vast.sh destroy ID`). Detaching and re-attaching the key or rebooting the
+  machine did not help when this happened to us, and only adds billed time. Rent another machine, with its machine id
+  in `EXCLUDE_MACHINES`.
 - **Stopped or interrupted run:** start the same `run.sh` command again; it continues where it stopped.
   `bash /root/work/stop.sh /root/results/my-scroll` returns only when nothing of the run is left (a tool that ignores
   TERM, as the stitcher can, gets KILL after 10 s), so `run.sh` can start right after it. A `run.sh` started while a
