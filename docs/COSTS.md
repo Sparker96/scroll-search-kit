@@ -1,9 +1,9 @@
 # What it costs: one band measured, and what a whole scroll would take
 
-DRAFT 2026-10-22 — the band was measured on 2026-10-20 with the pilot version of this kit (same recipe; this version
-adds the fixes below). Numbers re-measured from the run's raw logs (`metrics.tsv`, every box's `timing.tsv`); desktop
-measurements of the fixes are marked as such. The scroll is one of the eligible 9.362 µm scrolls; we do not name it yet.
-The release test at the end (2026-10-22) ran this version on the public PHerc. 0343 control.
+The band was measured on 2026-10-20 with the pilot version of this kit (same recipe; this version adds the fixes below).
+Numbers re-measured from the run's raw logs (`metrics.tsv`, every box's `timing.tsv`); desktop measurements of the fixes
+are marked as such. The scroll is one of the eligible 9.362 µm scrolls; we do not name it yet. The release test at the
+end (2026-10-22) ran this version on the public PHerc. 0343 control.
 
 ## The machine
 

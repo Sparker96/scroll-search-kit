@@ -1,7 +1,7 @@
 # Lessons from running the search on a rented multi-GPU machine
 
-DRAFT 2026-10-22 — numbers about the rented runs were re-checked against their logs on 2026-10-21 and 22; the others
-come from the content lead's tests on a desktop GPU and say so.
+Numbers about the rented runs were re-checked against their logs on 2026-10-21 and 22; the others come from the content
+lead's tests on a desktop GPU and say so.
 
 These are the things that cost us time or money on the first rented run. Most of them are not
 specific to one provider.

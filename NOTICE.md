@@ -1,8 +1,9 @@
 # Third-party software and data
 
-DRAFT 2026-10-20 — release asset names and checksums to be filled in at release.
-
-The kit's own scripts are MIT-licensed (LICENSE). It runs, downloads or redistributes the following.
+The kit's own scripts are MIT-licensed (LICENSE). It runs, downloads or redistributes the following. The files too big
+for git are assets of the release v1.0 (https://github.com/Sparker96/scroll-search-kit/releases/tag/v1.0), each listed
+with its sha256 in the release's `SHA256SUMS`: `VC3D-2eb83c7-2026-10-19-linux-x86_64.AppImage`, `GPL-3.0.txt`,
+`villa-2eb83c7.tar.gz`, `libc6.copyright` and `control-0343.tar.gz`.
 
 ## VC3D (Volume Cartographer) — redistributed, unmodified, GPLv3
 
@@ -19,8 +20,8 @@ The kit's own scripts are MIT-licensed (LICENSE). It runs, downloads or redistri
 - Bundled libraries: the AppImage bundles Ubuntu 26.04 libraries (Qt 6, OpenCV, GDAL, OpenSSL and ~170 others).
   Their copyright and licence files are inside the AppImage under `usr/share/doc/<package>/copyright`. The build's
   glibc-bundling step adds glibc, libstdc++ and libgcc_s without their own copyright files:
-  - glibc (Ubuntu `2.43-2ubuntu2.4`, LGPL-2.1+): its Ubuntu copyright file is in the release as
-    `third-party/libc6.copyright`; source: Ubuntu source package `glibc` 2.43-2ubuntu2.4.
+  - glibc (Ubuntu `2.43-2ubuntu2.4`, LGPL-2.1+): its Ubuntu copyright file is in the release as `libc6.copyright`;
+    source: Ubuntu source package `glibc` 2.43-2ubuntu2.4.
   - libstdc++ and libgcc_s come from the `gcc-16` source package (GPL-3 with the GCC Runtime Library Exception); its
     copyright file is already inside the AppImage as `usr/share/doc/libgomp1/copyright`.
 - Alternatives (not verified with the kit): villa's current "stable" and "latest" releases.

@@ -1,7 +1,5 @@
 # Search eligible scrolls on rented GPUs: a reproducible kit + measured cost per cm²
 
-DRAFT 2026-10-20 — not released. ⟨TBD⟩ = not filled in yet.
-
 A scripted, resumable pipeline that searches a Herculaneum scroll scan for ink on a rented multi-GPU Linux machine,
 from the public OME-Zarr data to depth-resolved ink maps on tifxyz surfaces, and what that measurably costs.
 

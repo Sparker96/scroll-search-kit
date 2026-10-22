@@ -1,9 +1,9 @@
 # Validation on public data
 
-DRAFT 2026-10-22 — the scores, sizes and counts below were re-checked against the result files (score files of the
-control runs, the rented runs' check maps, the release test's letter check and logs) on 2026-10-21 and 22, except §2's
-shares of inked papyrus (the content lead's measure); run times and speeds are from the content lead's run log. Only
-public, already-read scrolls appear here.
+The scores, sizes and counts below were re-checked against the result files (score files of the control runs, the rented
+runs' check maps, the release test's letter check and logs) on 2026-10-21 and 22, except §2's shares of inked papyrus
+(the content lead's measure); run times and speeds are from the content lead's run log. Only public, already-read
+scrolls appear here.
 
 A search kit is only useful if it would see writing where writing is. We checked that on two
 public scrolls whose text is already known, then checked that rented machines reproduce the

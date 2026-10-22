@@ -1,7 +1,7 @@
 # Renting a machine and running a search, step by step
 
-DRAFT 2026-10-20. Commands are run on **your own computer** unless the line says `vast.sh ssh ID '...'`, which runs
-on the rented machine. Prices change by the hour; check before you rent.
+Commands are run on **your own computer** unless the line says `vast.sh ssh ID '...'`, which runs on the rented machine.
+Prices change by the hour; check before you rent.
 
 ## Before the first rental (once)
 

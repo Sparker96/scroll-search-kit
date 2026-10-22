@@ -7,10 +7,10 @@
 set -euo pipefail
 R=$(cd "$(dirname "$0")/.." && pwd)
 K=${1:-$R/build/kit}
-RELEASE=${RELEASE:-https://github.com/OWNER/REPO/releases/download/v1.0}   # set at release
+RELEASE=${RELEASE:-https://github.com/Sparker96/scroll-search-kit/releases/download/v1.0}
 VC3D_SHA=4a624e7cc6f068c54568262e970aa7e49f6b2cc9c420571d88fb7f695f3af731
 VC3D_URL=${VC3D_URL:-$RELEASE/VC3D-2eb83c7-2026-10-19-linux-x86_64.AppImage}
-CONTROL_SHA=${CONTROL_SHA:-}                                                 # set at release
+CONTROL_SHA=${CONTROL_SHA:-34e562a53261f699d15ec82dcc3b50829e903987763156bb317a66ff1b3ec1ae}
 CONTROL_URL=${CONTROL_URL:-$RELEASE/control-0343.tar.gz}
 # the kit records the commit it was built from; uncommitted changes would make that record false
 if [ -n "$(git -C "$R" status --porcelain 2> /dev/null)" ] && [ "${ALLOW_DIRTY:-0}" != 1 ]; then
