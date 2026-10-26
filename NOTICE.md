@@ -38,6 +38,8 @@ with its sha256 in the release's `SHA256SUMS`: `VC3D-2eb83c7-2026-10-19-linux-x8
 - PyTorch 2.14.1 (CUDA 13.0) and the Python packages pinned in `kit/requirements-ink.txt`, from PyPI / the PyTorch
   index, each under its own licence.
 - `uv` 0.13.1 by Astral (MIT / Apache-2.0), checksum-verified.
+- CPython 3.14.8 (PSF License), the python-build-standalone build `20261013` that `uv` 0.13.1 downloads; the
+  libraries it bundles are under their own licences.
 
 ## Data
 

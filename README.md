@@ -75,6 +75,9 @@ check to run from your own machine.
   18 strips and patches on all four GPUs from one queue, and shows all 18 known PHerc. 0343 letters (on the patches it
   grew at the six letter positions it was given). From renting the machine to destroying it: 88 minutes, $1.54
   ([COSTS](docs/COSTS.md)).
+- **v1.0 itself** differs from that candidate only in the versions of the Python packages it installs (12 moved to
+  older releases, see [Requirements](#requirements)); with these versions, a fresh set-up on the desktop RTX 4070 SUPER
+  passed the same-answer check (11/11 maps identical).
 
 See [docs/VALIDATION.md](docs/VALIDATION.md), including what this does *not* show.
 
@@ -109,8 +112,9 @@ and the ink step pauses when less than 150 GB is free (`MIN_FREE_GB`).
   32 GB; plan disk for the scan data you will read). The quick configuration with two bands ran on 88 threads and
   used at most 33 GB of RAM and 47 GB of disk. Smaller machines work with fewer growers (`band.sh` caps them by RAM and
   by the container's thread limit).
-- Nothing to compile: VC3D comes as a pinned, checksum-verified AppImage (see NOTICE); Python
-  3.14 + PyTorch 2.14.1 (CUDA 13.0) are installed by `setup.sh` with `uv`.
+- Nothing to compile: VC3D comes as a pinned, checksum-verified AppImage (see NOTICE). `setup.sh` installs, with
+  `uv` 0.13.1, Python 3.14 (the 3.14.8 build this uv picks), PyTorch 2.14.1 (CUDA 13.0) and the packages pinned in
+  `kit/requirements-ink.txt` (every pin there released before 2026-10-09; newer PyPI uploads are refused).
 
 ## Limitations
 

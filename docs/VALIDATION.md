@@ -142,6 +142,11 @@ r > 0.99 rather than identical bytes (not yet tested). In the release test ([COS
 machine (4 × RTX 4070 SUPER, also Ada) ran that check before its search: all 11 Reader V3 maps were identical to the
 reference maps (r 1.00000, largest difference 0).
 
+v1.0 differs from that candidate only in the versions of the Python packages it installs (12 moved to older releases,
+all from before 2026-10-09; README, Requirements). After a fresh set-up with these versions on the desktop machine, the
+check again gave 11 Reader V3 maps identical to the reference maps (r 1.00000, largest difference 0), so the version
+change does not change the maps there. v1.0 itself has not been run on a rented machine.
+
 ## 4. Reader V3 against Reader v2 on PHerc. 0343
 
 Scored on the same PHerc. 0343 strip against Erwin Nieuwlaar's 18 letter boxes, which neither model produced: how

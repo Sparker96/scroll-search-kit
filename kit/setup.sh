@@ -15,6 +15,9 @@ UV_VER=0.13.1
 UV_SHA=eadd9d27c134ab5ac1ffd4473b97a741407f3ea238288f03121fc4deddf90220
 VC3D_SHA=4a624e7cc6f068c54568262e970aa7e49f6b2cc9c420571d88fb7f695f3af731   # VC3D 2eb83c7 (2026-10-19), see NOTICE.md
 VILLA_SHA=8aa507c1215f1fa8758f13d0538f7af9710e02d7
+# PyPI uploads after this time are refused (steps 3 and 4, build tools included): a safety margin against freshly
+# published, possibly compromised releases. Every pin in requirements-ink.txt is older.
+EXCLUDE_NEWER=2026-10-09T00:00:00Z
 PY=$HOME/envs/ink/bin/python
 step() { echo "== $(date +%T) $*"; }
 t0=$(date +%s)
@@ -48,8 +51,9 @@ if [ ! -e "$HOME/envs/ink/.complete" ]; then
   [ -x "$PY" ] || "$UV" venv --python 3.14 "$HOME/envs/ink"
   "$UV" pip install --python "$PY" torch==2.14.1 torchvision==0.29.1 --index-url https://download.pytorch.org/whl/cu130
   # the frozen environment, minus torch (done above) and the unused CUDA 12 copies of the NVIDIA libraries
+  # (the date limit is for PyPI: the PyTorch index publishes no upload times; torch 2.14.1 is from 2026-09-30)
   grep -v -E '^(torch|torchvision)==|^nvidia-[a-z0-9-]+-cu12==' "$KIT/requirements-ink.txt" > "$KIT/requirements-rest.txt"
-  "$UV" pip install --python "$PY" -r "$KIT/requirements-rest.txt"
+  "$UV" pip install --python "$PY" --exclude-newer "$EXCLUDE_NEWER" -r "$KIT/requirements-rest.txt"
   touch "$HOME/envs/ink/.complete"
 fi
 
@@ -61,7 +65,7 @@ if [ ! -e "$HOME/code/villa/vesuvius/pyproject.toml" ]; then
   git -C "$HOME/code/villa" checkout -q "$VILLA_SHA"
 fi
 [ "$(git -C "$HOME/code/villa" rev-parse HEAD)" = "$VILLA_SHA" ] || { echo "villa is not at $VILLA_SHA"; exit 1; }
-"$UV" pip install --python "$PY" --no-deps -e "$HOME/code/villa/vesuvius"
+"$UV" pip install --python "$PY" --no-deps --exclude-newer "$EXCLUDE_NEWER" -e "$HOME/code/villa/vesuvius"   # its build tools are not pinned
 
 step "5/8 VC3D 2eb83c7"
 APP=$HOME/tools/vc3d/squashfs-root
