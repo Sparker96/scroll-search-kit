@@ -145,7 +145,9 @@ reference maps (r 1.00000, largest difference 0).
 v1.0 differs from that candidate only in the versions of the Python packages it installs (12 moved to older releases,
 all from before 2026-10-09; README, Requirements). After a fresh set-up with these versions on the desktop machine, the
 check again gave 11 Reader V3 maps identical to the reference maps (r 1.00000, largest difference 0), so the version
-change does not change the maps there. v1.0 itself has not been run on a rented machine.
+change does not change the maps there. v1.0 itself has not been run on a rented machine. v1.0.1 changes only
+`kit/vast.sh` and `kit/make_kit.sh`, which run on your own computer, and the documents; the folder that `make_kit.sh`
+builds for the machine is v1.0's, apart from its VERSION file.
 
 ## 4. Reader V3 against Reader v2 on PHerc. 0343
 

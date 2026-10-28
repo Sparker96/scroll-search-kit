@@ -77,14 +77,16 @@ check to run from your own machine.
   ([COSTS](docs/COSTS.md)).
 - **v1.0 itself** differs from that candidate only in the versions of the Python packages it installs (12 moved to
   older releases, see [Requirements](#requirements)); with these versions, a fresh set-up on the desktop RTX 4070 SUPER
-  passed the same-answer check (11/11 maps identical).
+  passed the same-answer check (11/11 maps identical). v1.0.1 changes only what runs on your own computer (`vast.sh`,
+  `make_kit.sh`) and the documents: the folder that goes to the machine is v1.0's, apart from its VERSION file.
 
 See [docs/VALIDATION.md](docs/VALIDATION.md), including what this does *not* show.
 
 ## Quick start
 
 You need a vast.ai account with prepaid credit (auto top-up off), its API key in a file only you can read, and an
-SSH key used only for rented machines. Step by step, with costs and safety notes: [docs/RENTING.md](docs/RENTING.md).
+SSH key used only for rented machines, plus a spare one. Step by step, with costs and safety notes:
+[docs/RENTING.md](docs/RENTING.md).
 
 ```bash
 kit/make_kit.sh build/kit                  # the folder that goes to the machine (fetches VC3D + control data, checksums)

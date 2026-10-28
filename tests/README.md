@@ -62,7 +62,7 @@ tests/vast_offline.sh
 ```
 
 `tests/fake/vast_api.py` takes the place of curl and answers from canned offers and a canned machine; ssh is a
-stand-in that refuses. It checks:
+stand-in that refuses (for `wait`, one that answers as each test says). It checks:
 - `offers`: machine ids, `EXCLUDE_MACHINES`, `MIN_RAM` (compared with the RAM as printed; the request to vast.ai
   stays the same).
 - `create`: what it sends, `IMAGE`, and that a `.pub` file that is not one plain key line stops it before any API call.
@@ -71,6 +71,9 @@ stand-in that refuses. It checks:
   (as vast.ai's image makes it when homes live on a volume).
 - `status`, `destroy`, `balance`, and `logs`: the log link is fetched without the API key, and control characters are
   replaced.
+- `wait` prints each status change and SSH error once, and attaches the spare key once when the key is refused 3 times
+  in a row (another error starts the count again; without a spare key it says so). `attach` sends the key named, and a
+  file that is not one public key line (a private key, two lines, a Windows line end, ...) stops it before any API call.
 - The API key never appears in a request.
 
 What it cannot show: how the real vast.ai API and a real machine answer. That is the rental test's job.

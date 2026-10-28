@@ -2,8 +2,9 @@
 # vast_offline.sh — kit/vast.sh's API commands against a stand-in vast.ai (tests/fake/vast_api.py in place of curl, a
 # stand-in ssh that refuses): no account, no network, no rental, seconds. Checks offers (machine ids, EXCLUDE_MACHINES,
 # MIN_RAM), create (the request it sends, IMAGE, the checks on the public key), the start-up script itself (run in a
-# user namespace with /root on a test folder, if this machine allows that), status, logs, destroy, balance and the usage
-# text.
+# user namespace with /root on a test folder, if this machine allows that), status, wait (what it prints; the spare key
+# attached after 3 refusals of the key in a row, against a stand-in ssh that refuses until then), attach (the request,
+# the checks on the public key), logs, destroy, balance and the usage text.
 # usage: tests/vast_offline.sh
 set -uo pipefail
 R=$(cd "$(dirname "$0")/.." && pwd)
@@ -33,7 +34,8 @@ print(*(hit[-1]['method'], hit[-1]['auth'], hit[-1]['data']) if hit else ('none'
 echo "== usage"
 out=$($V 2>&1); rc=$?
 [ "$rc" = 1 ] && [ "$(head -n 1 <<< "$out")" = "# vast.sh — your own machine's handle on a rented vast.ai machine (vast.ai REST API)." ] \
-  && grep -q 'vast.sh logs ID' <<< "$out" && grep -q 'EXCLUDE_MACHINES' <<< "$out" && grep -q 'MIN_RAM' <<< "$out" \
+  && grep -q 'vast.sh logs ID' <<< "$out" && grep -q 'vast.sh attach ID' <<< "$out" && grep -q 'RENTAL_KEY2' <<< "$out" \
+  && grep -q 'EXCLUDE_MACHINES' <<< "$out" && grep -q 'MIN_RAM' <<< "$out" \
   && tail -n 1 <<< "$out" | grep -q 'DAEMON_LOGS=1' && ! grep -q '^set ' <<< "$out" && ok "no command: the whole header is printed, and nothing after it" || bad "usage (exit $rc): $out"
 
 echo "== offers"
@@ -157,6 +159,80 @@ out=$($V status 4242); rc=$?
   && ok "status: state first, then the machine id and the image" || bad "status (exit $rc): $out"
 out=$($V status 999); rc=$?
 [ "$rc" = 1 ] && [ "$out" = "no such instance" ] && ok "status of an unknown id: 'no such instance', exit 1" || bad "status 999 (exit $rc): $out"
+
+echo "== wait, attach"
+# a stand-in ssh that answers as FAKE_SSH_SEQ says, call by call (d = key refused, r = connection refused, o = in), and
+# after that refuses the key until a key has been attached to the machine; sleep does not wait
+mkdir -p "$T/sshbin" "$T/nosleep"
+cat > "$T/sshbin/ssh" << 'EOF'
+#!/bin/sh
+echo "$*" >> "$FAKE_VAST_STATE/ssh-args"
+n=$(( $(cat "$FAKE_VAST_STATE/ssh-n" 2> /dev/null || echo 0) + 1 )); echo "$n" > "$FAKE_VAST_STATE/ssh-n"
+set -- ${FAKE_SSH_SEQ:-}
+eval "o=\${$n:-}"
+if [ -z "$o" ]; then if [ -e "$FAKE_VAST_STATE/attached-4242" ]; then o=o; else o=d; fi; fi
+case $o in
+  o) exit 0 ;;
+  r) echo "ssh: connect to host 203.0.113.7 port 40022: Connection refused" >&2 ;;
+  *) echo "root@203.0.113.7: Permission denied (publickey)." >&2 ;;
+esac
+exit 255
+EOF
+printf '#!/bin/sh\nexit 0\n' > "$T/nosleep/sleep"; chmod 755 "$T/sshbin/ssh" "$T/nosleep/sleep"
+waitrun() {  # FAKE_SSH_SEQ, then env assignments: vast.sh wait 4242 with the stand-in ssh; output in $out, exit in $rc
+  local seq=$1; shift; rm -f "$FAKE_VAST_STATE/ssh-n" "$FAKE_VAST_STATE/ssh-args"
+  out=$(env PATH="$T/sshbin:$T/nosleep:$PATH" FAKE_SSH_SEQ="$seq" "$@" $V wait 4242 2>&1); rc=$?
+}
+denied='SSH: root@203.0.113.7: Permission denied (publickey).'
+waitrun 'd d d d o' RENTAL_KEY2=$T/nospare
+[ "$rc" = 0 ] && [ "$(grep -c 'status running$' <<< "$out")" = 1 ] && [ "$(grep -c ' SSH: ' <<< "$out")" = 1 ] \
+  && grep -qF "$denied" <<< "$out" && tail -n 1 <<< "$out" | grep -q 'running, SSH answers$' \
+  && [ "$(grep -c "3 times in a row, and there is no spare key $T/nospare.pub to attach" <<< "$out")" = 1 ] \
+  && [ "$(ncalls /ssh/)" = 0 ] && ! grep -q -- "-i $T/nospare" "$FAKE_VAST_STATE/ssh-args" \
+  && ok "no spare key: wait prints the state once and the refusal once, says once that it has no spare key to attach" \
+  || bad "wait without a spare key (exit $rc): $out"
+ssh-keygen -q -t ed25519 -N '' -C 'test spare (offline) -> nowhere' -f "$T/rental2"
+waitrun 'd d r d d o'
+[ "$rc" = 0 ] && [ "$(grep -c ' SSH: ' <<< "$out")" = 3 ] && grep -q 'SSH: ssh: connect to host .*Connection refused$' <<< "$out" \
+  && [ "$(ncalls /ssh/)" = 0 ] && ! grep -q 'attaching' <<< "$out" \
+  && grep -q -- "-i $T/rental -i $T/rental2 " "$FAKE_VAST_STATE/ssh-args" \
+  && ok "a different error resets the count (2 refusals, connection refused, 2 refusals: nothing attached); each change of error printed once; both keys offered" \
+  || bad "wait with the count reset (exit $rc): $out"
+waitrun 'r d d d'
+[ "$rc" = 0 ] && grep -q "3 times in a row: attaching the spare key $T/rental2.pub$" <<< "$out" && grep -qx 'attached' <<< "$out" \
+  && tail -n 1 <<< "$out" | grep -q 'running, SSH answers$' && [ "$(cat "$FAKE_VAST_STATE/ssh-n")" = 5 ] \
+  && [ "$(grep -n 'attaching the spare' <<< "$out" | cut -d: -f1)" -lt "$(grep -n 'SSH answers' <<< "$out" | cut -d: -f1)" ] \
+  && ok "3 refusals in a row: wait attaches the spare key once, then SSH answers" || bad "wait with attach (exit $rc): $out"
+python3 -I - "$FAKE_VAST_STATE/calls.jsonl" "$T/rental2.pub" << 'EOF' && ok "the attach request: POST to /instances/4242/ssh/ with the key, body {\"ssh_key\": <the spare's .pub line>}" \
+  || bad "attach request: $(grep /ssh/ "$FAKE_VAST_STATE/calls.jsonl")"
+import json, sys
+calls = [c for c in map(json.loads, open(sys.argv[1])) if (c['url'] or '').endswith('/instances/4242/ssh/')]
+assert len(calls) == 1, calls
+c = calls[0]
+assert c['method'] == 'POST' and c['auth'] is True and c['url'] == 'https://console.vast.ai/api/v0/instances/4242/ssh/', c
+assert json.loads(c['data']) == {'ssh_key': open(sys.argv[2]).read().rstrip('\n')}, c['data']
+assert 'PRIVATE' not in json.dumps(c)
+EOF
+out=$($V attach 4242 2> "$T/attach.err"); rc=$?
+[ "$rc" != 0 ] && [ -z "$out" ] && grep -q 'attach refused: this key is already on the instance' "$T/attach.err" \
+  && grep -q "attaching 256 $(ssh-keygen -lf "$T/rental2.pub" | cut -d' ' -f2) .* to instance 4242" "$T/attach.err" \
+  && ok "attach by hand with the spare key again: the API's refusal on stderr, exit $rc" || bad "attach again (exit $rc): $out $(cat "$T/attach.err")"
+out=$($V attach 4242 "$T/other.pub" 2> "$T/attach.err"); rc=$?
+[ "$rc" = 0 ] && [ "$out" = attached ] && [ "$(lastcall /instances/4242/ssh/ | cut -d' ' -f1-2)" = "POST True" ] \
+  && grep -qF "$(cut -d' ' -f2 "$T/other.pub")" <<< "$(lastcall /instances/4242/ssh/)" \
+  && ok "attach ID PUB sends the key named" || bad "attach other (exit $rc): $out $(cat "$T/attach.err")"
+refuse_attach() {  # NAME WHAT: attach with $T/NAME.pub must stop before any API call
+  local n0 out rc; n0=$(ncalls /ssh/)
+  out=$($V attach 4242 "$T/$1.pub" 2> "$T/refuse.err"); rc=$?
+  [ "$rc" != 0 ] && [ -z "$out" ] && [ -s "$T/refuse.err" ] && [ "$(ncalls /ssh/)" = "$n0" ] \
+    && ! grep -q 'PRIVATE\|AAAA' "$T/refuse.err" && ok "attach refused before any API call, the reason on stderr: $2" \
+    || bad "attach not refused ($2): exit $rc, stdout '$out', stderr $(cat "$T/refuse.err")"
+}
+refuse_attach missing "no such file"
+refuse_attach private "the private key named as the .pub file"
+refuse_attach twolines "two lines"
+refuse_attach crlf "a Windows line end"
+refuse_attach notakey "a line of the right shape that is not a key"
 
 echo "== logs"
 out=$($V logs 4242 2> "$T/logs.err"); rc=$?

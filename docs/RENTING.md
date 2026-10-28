@@ -10,13 +10,14 @@ Prices change by the hour; check before you rent.
 2. **API key.** Create one in the vast.ai console and save it in a file only you can read:
    `install -D -m 600 /dev/stdin ~/.config/vesuvius/vastai-key` (paste, then Ctrl-D), or set `VAST_KEY_FILE`.
    The key never goes to the rented machine.
-3. **SSH key for rented machines only.** `ssh-keygen -t ed25519 -C rented-machines -f ~/.ssh/vesuvius_rental` (or set
+3. **SSH keys for rented machines only.** `ssh-keygen -t ed25519 -C rented-machines -f ~/.ssh/vesuvius_rental` (or set
    `RENTAL_KEY`). `-C` sets the comment that travels with the public half (by default your user and computer name).
    Add the **public** half (`.pub`) on your vast.ai account's SSH keys page; vast.ai copies it into every new machine.
-   `vast.sh` connects with this key only, with agent and X11 forwarding off. `vast.sh create` also has the machine add
-   this public half itself when it starts, in case vast.ai's copy does not arrive, and report its SSH setup (see "The
-   machine refuses the SSH key" below). It refuses a `.pub` file that is not exactly one plain key line: no quotes in
-   the comment.
+   Make a spare key the same way (`-f ~/.ssh/vesuvius_rental2`, or set `RENTAL_KEY2`), but do **not** add it on that
+   page: it is kept for a machine that refuses the first key (see "The machine refuses the SSH key" below).
+   `vast.sh` connects with these keys only, with agent and X11 forwarding off. `vast.sh create` also has the machine add
+   the first key's public half itself when it starts, in case vast.ai's copy does not arrive, and report its SSH setup
+   (same section). It refuses a `.pub` file that is not exactly one plain key line: no quotes in the comment.
 4. **Build the kit folder:** `kit/make_kit.sh build/kit` (downloads the pinned VC3D build and the control data from
    this repository's release, checks their checksums, and refuses to build if anything looks like a secret).
 5. **Write a config** for your scroll: copy `kit/config/TEMPLATE.env` into `build/kit/config/`. Start with the
@@ -71,15 +72,17 @@ Links, device files and names that point outside it are skipped and named; the p
 
 ## If something goes wrong
 
-- **The machine refuses the SSH key** (`kit/vast.sh ssh ID true` says `Permission denied (publickey)`). `Connection
-  refused` in the first minutes is normal: the machine is still starting (for about 2½ minutes in our last test, then
-  the key was accepted). `vast.sh wait` keeps trying for up to 30 minutes without saying why, so watch the clock
-  instead. If SSH does not answer 5 minutes after `kit/vast.sh status ID` first shows the machine's own state as
-  `running` (the first word after the ID), stop `wait` (Ctrl-C) and keep the machine's log:
-  `kit/vast.sh logs ID > refused.log`. It is read through the API, so no SSH is needed, and it holds the kit's
-  start-up report: the key file, its permissions and the SSH server's settings. Then destroy the machine
-  (`kit/vast.sh destroy ID`). Detaching and re-attaching the key or rebooting the machine did not help when this
-  happened to us, and only adds billed time. Rent another machine, with its machine id in `EXCLUDE_MACHINES`.
+- **The machine refuses the SSH key** (`Permission denied (publickey)` once `kit/vast.sh status ID` shows the machine's
+  own state as `running`, the first word after the ID). `Connection refused` in the first minutes is normal: the machine
+  is still starting (for about 2½ minutes in one of our tests, then the key was accepted). `vast.sh wait` prints each
+  status change and SSH error, and when the key is refused 3 times in a row it attaches your spare key's public half to
+  that machine through vast.ai's API, once. When this happened to us, a key that machine had never had made it re-read
+  its keys: about 20 seconds later it accepted both keys. By hand: `kit/vast.sh attach ID` (the spare key) or
+  `kit/vast.sh attach ID OTHER.pub`; it sends only a file that holds exactly one public key line. Attaching a key the
+  machine already had, or rebooting it, did not help. If SSH still refuses 5 minutes after the attach, stop `wait`
+  (Ctrl-C) and keep the machine's log, `kit/vast.sh logs ID > refused.log` (read through the API, so no SSH is needed;
+  it holds the kit's start-up report: the key file, its permissions and the SSH server's settings). Then destroy the
+  machine (`kit/vast.sh destroy ID`) and rent another, with its machine id in `EXCLUDE_MACHINES`.
 - **Stopped or interrupted run:** start the same `run.sh` command again; it continues where it stopped.
   `bash /root/work/stop.sh /root/results/my-scroll` returns only when nothing of the run is left (a tool that ignores
   TERM, as the stitcher can, gets KILL after 10 s), so `run.sh` can start right after it. A `run.sh` started while a

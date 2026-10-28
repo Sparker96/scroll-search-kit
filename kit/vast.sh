@@ -2,13 +2,17 @@
 # vast.sh — your own machine's handle on a rented vast.ai machine (vast.ai REST API).
 # The API key stays on your machine: $VAST_KEY_FILE (chmod 600), read into a 600 curl config, never printed, never
 # copied to the rented machine. SSH uses only a key made for rented machines ($RENTAL_KEY; add its PUBLIC half on your
-# vast.ai account's SSH keys page, which vast.ai copies into each new machine), with no agent or X forwarding.
+# vast.ai account's SSH keys page, which vast.ai copies into each new machine), with no agent or X forwarding, and a
+# spare one if you made it ($RENTAL_KEY2 [$RENTAL_KEY with 2 added]; NOT on that page: it is kept for attach, below).
 #   vast.sh offers                 cheapest on-demand offers that fit (filters below, set by environment variables)
 #   vast.sh create OFFER [LABEL] [DISK_GB]  rent it (vast.ai base image, disk [2000] GB, direct SSH); prints the id.
 #                                  At start the machine also installs $RENTAL_KEY.pub itself (one plain key line, never
 #                                  the private key) and reports its SSH setup in /root/kit-onstart.log and in its log
 #   vast.sh status ID              state, address, price, machine id, image
-#   vast.sh wait ID                until it runs and SSH answers (30 min at most)
+#   vast.sh wait ID                until it runs and SSH answers (30 min at most), printing each status change and SSH
+#                                  error; when the machine refuses the key 3 times in a row, it attaches the spare once
+#   vast.sh attach ID [PUB]        add a public key to the machine [$RENTAL_KEY2.pub]: one it has not had yet made a
+#                                  machine that refused ours re-read its keys and take both (the same key again did not)
 #   vast.sh logs ID [LINES]        the machine's log, read through the API (no SSH needed) [last 1000 lines]
 #   vast.sh ssh ID [CMD...]        run a command there (or log in)
 #   vast.sh push ID DIR            copy DIR's contents to /root/kit there (tar over SSH, no user or group names)
@@ -27,6 +31,7 @@ KEY=${VAST_KEY_FILE:-$HOME/.config/vesuvius/vastai-key}
 AUTH=$(dirname "$KEY")/vastai-auth.curl
 KNOWN=${RENTAL_KNOWN_HOSTS:-$HOME/.ssh/known_hosts_rental}
 SSHKEY=${RENTAL_KEY:-$HOME/.ssh/vesuvius_rental}
+SSHKEY2=${RENTAL_KEY2:-${SSHKEY}2}
 need_auth() {
   [ -s "$KEY" ] || { echo "no API key in $KEY"; exit 1; }
   if [ ! -s "$AUTH" ] || [ "$KEY" -nt "$AUTH" ]; then
@@ -56,7 +61,8 @@ elif i.get('ssh_host'):
 }
 sshto() {  # ID, then ssh arguments
   local id=$1; shift; read -r ip port < <(addr "$id"); [ -n "${ip:-}" ] || { echo "no address yet"; return 1; }
-  ssh -i "$SSHKEY" -o IdentitiesOnly=yes -o ForwardAgent=no -o ForwardX11=no -o StrictHostKeyChecking=accept-new \
+  local ids=(-i "$SSHKEY"); [ -s "$SSHKEY2" ] && ids+=(-i "$SSHKEY2")   # the spare key too, once it exists
+  ssh "${ids[@]}" -o IdentitiesOnly=yes -o ForwardAgent=no -o ForwardX11=no -o StrictHostKeyChecking=accept-new \
       -o UserKnownHostsFile="$KNOWN" -o ServerAliveInterval=30 -o ConnectTimeout=20 -p "$port" "root@$ip" "$@"
 }
 onstart_body() {  # what the machine runs at each start; create puts k='<the public key line>' in front of it
@@ -81,6 +87,39 @@ set +e; PATH=${PATH:-/usr/bin:/bin}:/usr/sbin:/sbin; f=/root/.ssh/authorized_key
   echo "== kit onstart end =="
 } 2>&1 | tee -a /root/kit-onstart.log
 EOF
+}
+attach_key() {  # ID PUB: add the public key in PUB to machine ID through the API (what `vastai attach ssh` does)
+  local body fp
+  # the same checks as create's: exactly one public key line, so a private key file can never be sent by mistake
+  body=$(python3 -I - "$2" << 'EOF'
+import json, re, sys
+pub = sys.argv[1]
+try:
+    with open(pub, 'rb') as f:
+        raw = f.read(20001)
+except OSError as e:
+    sys.exit(f'cannot read {pub} ({e.strerror}): make the spare key as in RENTING, or name a .pub file')
+line = raw[:-1] if raw.endswith(b'\n') else raw
+if not (len(raw) <= 20000 and all(32 <= c < 127 for c in line) and re.fullmatch(
+        r"(ssh-ed25519|ecdsa-sha2-nistp256|ssh-rsa) [A-Za-z0-9+/=]+( [^'\"]*)?", line.decode())):
+    sys.exit(f'{pub} must hold exactly one public key line (ssh-ed25519, ecdsa-sha2-nistp256 or ssh-rsa; plain ASCII, '
+             'no quotes in its comment): refusing')
+print(json.dumps({'ssh_key': line.decode()}))
+EOF
+) || return 1
+  fp=$(ssh-keygen -lf "$2" < /dev/null 2> /dev/null) || { echo "$2 is not a public key ssh-keygen can read: refusing" >&2; return 1; }
+  echo "attaching $fp to instance $1" >&2
+  api -X POST -H 'Content-Type: application/json' -d "$body" "$API/instances/$1/ssh/" | python3 -I -c "
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except ValueError:
+    sys.exit('the API did not answer with JSON')
+if not isinstance(d, dict):
+    d = {'msg': d}
+if not d.get('success'):
+    sys.exit(f\"attach refused: {d.get('msg') or d.get('error') or d}\"[:300])
+print('attached')"
 }
 case "${1:-}" in
   offers)
@@ -150,10 +189,27 @@ if not i: print('no such instance'); sys.exit(1)
 print(i.get('id'), i.get('actual_status'), i.get('intended_status'), f\"\${(i.get('dph_total') or 0):.2f}/h\", i.get('num_gpus'), i.get('gpu_name'), i.get('public_ipaddr'), (i.get('ports') or {}).get('22/tcp'),
       f\"machine {i.get('machine_id')}\", f\"image {i.get('image_uuid') or i.get('image')}\", i.get('status_msg'))" ;;
   wait)
-    id=${2:?id}
+    id=${2:?id}; last=; lasterr=; denied=0; attached=0
     for _ in $(seq 1 90); do
       s=$(inst "$id" | python3 -I -c "import json, sys; i = json.loads(sys.stdin.read() or '{}'); print(i.get('actual_status'))")
-      if [ "$s" = running ] && sshto "$id" true 2> /dev/null; then echo "running, SSH answers"; exit 0; fi
+      [ "$s" != "$last" ] && { echo "$(date +%H:%M:%S) status $s"; last=$s; }
+      if [ "$s" = running ]; then
+        if out=$(sshto "$id" true 2>&1); then echo "$(date +%H:%M:%S) running, SSH answers"; exit 0; fi
+        err=$(printf '%s\n' "$out" | tail -n 1)
+        [ "$err" != "$lasterr" ] && { echo "$(date +%H:%M:%S) SSH: $err"; lasterr=$err; }
+        # a machine can refuse the key for good; a key it has not had yet made one re-read its keys (LESSONS §19)
+        case $err in *'Permission denied (publickey)'*) denied=$((denied + 1)) ;; *) denied=0 ;; esac
+        if [ "$denied" -ge 3 ] && [ "$attached" = 0 ]; then
+          attached=1
+          if [ -s "$SSHKEY2.pub" ]; then
+            echo "$(date +%H:%M:%S) the machine refused the key 3 times in a row: attaching the spare key $SSHKEY2.pub"
+            attach_key "$id" "$SSHKEY2.pub"
+          else
+            echo "$(date +%H:%M:%S) the machine refused the key 3 times in a row, and there is no spare key $SSHKEY2.pub" \
+                 "to attach (RENTING: 'The machine refuses the SSH key')"
+          fi
+        fi
+      fi
       sleep 20
     done
     echo "not ready after 30 min (status $s)"; exit 1 ;;
@@ -192,6 +248,7 @@ sys.stdout.write(s if s.endswith('\n') or not s else s + '\n')" "$t"; exit $?
     done
     echo "the log was not ready after 2 minutes: run logs again" >&2; exit 1 ;;
   ssh) id=${2:?id}; shift 2; sshto "$id" "$@" ;;
+  attach) attach_key "${2:?id}" "${3:-$SSHKEY2.pub}" ;;
   push) id=${2:?id}; dir=${3:?dir}; tar cf - --numeric-owner -C "$dir" . | sshto "$id" 'mkdir -p /root/kit && tar xf - -C /root/kit && du -sh /root/kit' ;;
   pull) id=${2:?id}; rem=${3:?remote}; loc=${4:?local}; mkdir -p "$loc"
         # what comes back is untrusted: only plain files and folders are written, never outside LOCAL and never through a
@@ -246,5 +303,5 @@ sys.exit(1 if int(sys.argv[1]) in ids else 0)" "$id"
     api "$API/users/current/" | python3 -I -c "
 import json, sys
 d = json.load(sys.stdin); print({k: d.get(k) for k in ('credit', 'balance', 'total_spend') if k in d})" ;;
-  *) sed -n '2,23p' "$0"; exit 1 ;;
+  *) sed -n '2,27p' "$0"; exit 1 ;;
 esac

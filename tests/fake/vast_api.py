@@ -2,7 +2,9 @@
 """Stand-in for curl in tests/vast_offline.sh: answers the vast.ai API calls that kit/vast.sh makes from canned data and
 records each call (method, URL, whether the curl config with the API key was passed, the data sent) in
 $FAKE_VAST_STATE/calls.jsonl. Switches: FAKE_VAST_LOGS_FAIL=1 (the log request is refused), FAKE_VAST_LOG_READY=N (the
-log link answers from its Nth fetch on, default 2)."""
+log link answers from its Nth fetch on, default 2). Keys attached to a machine are listed in
+$FAKE_VAST_STATE/attached-ID (the stand-in ssh of tests/vast_offline.sh lets you in once the list exists); a key already
+listed is refused."""
 import json
 import os
 import re
@@ -87,6 +89,15 @@ def main():
                 f.write('HTTP/1.1 200 OK\r\nLast-Modified: Thu, 22 Oct 2026 14:00:05 GMT\r\n\r\n')
         with open(out, 'wb') if out else sys.stdout.buffer as f:
             f.write(LOG.encode())
+    elif (m := re.fullmatch(rf'{API}/v0/instances/(\d+)/ssh/', url or '')) and method == 'POST':
+        key = json.loads(data or '{}').get('ssh_key', '')
+        listed = os.path.join(STATE, f'attached-{m[1]}')
+        if os.path.exists(listed) and key in open(listed).read().splitlines():
+            answer({'success': False, 'msg': 'this key is already on the instance (stand-in)'})
+        else:
+            with open(listed, 'a') as f:
+                f.write(key + '\n')
+            answer({'success': True})
     elif re.fullmatch(rf'{API}/v0/instances/\d+/', url or '') and method == 'DELETE':
         open(os.path.join(STATE, 'destroyed'), 'w').close()
         answer({'success': True})

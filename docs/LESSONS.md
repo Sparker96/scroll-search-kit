@@ -214,12 +214,20 @@ point).
 
 ## 19. A rented machine can refuse your SSH key
 
-On one of our three rentals, the machine never accepted the rental key, although vast.ai said the key was attached:
+On our second rental, the machine never accepted the rental key, although vast.ai said the key was attached:
 SSH answered `Permission denied (publickey)` on both of vast.ai's routes to it. Detaching and re-attaching the key and
-a reboot did not help, and we destroyed it after 28 minutes (~$0.74 for nothing). We do not know why. Since then,
+a reboot did not help, and we destroyed it after 28 minutes (~$0.74 for nothing). Since then,
 `vast.sh create` has the machine install the key's public half itself when it starts, and write a short report of its
 SSH setup (the key file, its permissions, the SSH server's settings) into its log, which `vast.sh logs` reads through
 the API, without SSH. On the next rental the key was accepted 2 min 44 s after `create` (until then SSH said
 `Connection refused` while the machine started), and the report was in the log. Whether vast.ai's own copy of the key
-would also have worked there, the key file does not show. What to do when it happens: [RENTING](RENTING.md), "The
-machine refuses the SSH key".
+would also have worked there, the key file does not show.
+
+It happened again on 2026-10-28, on a machine rented with another of our scripts, one without that start-up install:
+`Permission denied (publickey)` on every try after the machine was running. This time we attached a second public key,
+one that machine had never had, through vast.ai's API (`POST /api/v0/instances/ID/ssh/` with `{"ssh_key": "<the .pub
+line>"}`, what `vastai attach ssh` does). About 20 s later SSH accepted it, and the first key too: a key the machine
+does not have yet seems to make it fetch its keys again, which the same key again did not. We do not know why a machine
+stops accepting a key, or whether the start-up install would have prevented it there. `vast.sh wait` now attaches a
+spare key by itself after three refusals in a row, and `vast.sh attach` does it by hand. What to do when it happens:
+[RENTING](RENTING.md), "The machine refuses the SSH key".

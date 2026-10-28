@@ -32,10 +32,12 @@ fi
 if [ ! -s "$K/test/control/check.env" ]; then
   if [ -d "$R/kit/test/control" ]; then cp -r "$R/kit/test/control" "$K/test/"
   else
-    tgz=${CONTROL_TGZ:-$K/test/control.tar.gz}
-    [ -s "$tgz" ] || curl -fL --retry 3 -o "$tgz" "$CONTROL_URL"
+    tgz=${CONTROL_TGZ:-}
+    # a downloaded archive is fetched afresh and removed once unpacked: the kit carries the control, not the archive
+    if [ -z "$tgz" ]; then tgz=$K/test/control.tar.gz.part; rm -f "$tgz"; curl -fL --retry 3 -o "$tgz" "$CONTROL_URL"; fi
     if [ -n "$CONTROL_SHA" ]; then echo "$CONTROL_SHA  $tgz" | sha256sum -c --quiet - || { echo "control checksum MISMATCH"; exit 1; }; fi
     tar -xzf "$tgz" -C "$K/test"
+    [ -n "${CONTROL_TGZ:-}" ] || rm -f "$tgz"
   fi
 fi
 chmod 755 "$K"/*.sh "$K/work"/*.sh
